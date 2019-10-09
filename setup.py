@@ -13,7 +13,7 @@ from setuptools import setup
 
 setup(
     name='jsonformatter',
-    version='0.1.2',
+    version='0.1.3',
     description=(
         'Python log in json format.'
     ),
@@ -36,4 +36,3 @@ setup(
     license='BSD License',
     packages=['jsonformatter']
 )
-

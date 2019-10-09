@@ -184,6 +184,7 @@ class JsonFormatter(logging.Formatter):
     def format(self, record):
         result = dictionary()
 
+        # store origin attributes
         _msg, _args = record.msg, record.args
         record.msg, record.args = '', tuple()
 
@@ -198,6 +199,7 @@ class JsonFormatter(logging.Formatter):
             self._style._fmt = v
             result[k] = getattr(record, v, None) if v in record.__dict__ else self.formatMessage(record)
         self._style._fmt = ''
+        # apply origin attributes
+        record.msg, record.args = _msg, _args
 
         return json.dumps(result, skipkeys=self.skipkeys, ensure_ascii=self.ensure_ascii, check_circular=self.check_circular, allow_nan=self.allow_nan, cls=self.cls, indent=self.indent, separators=self.separators, default=self.default, sort_keys=self.sort_keys, **self.kw)
-
