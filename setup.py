@@ -13,7 +13,7 @@ from setuptools import setup
 
 setup(
     name='jsonformatter',
-    version='0.1.3',
+    version='0.1.4',
     description=(
         'Python log in json format.'
     ),

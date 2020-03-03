@@ -69,14 +69,15 @@ class JsonFormatter(logging.Formatter):
     def parseFmt(self, fmt):
         if isinstance(fmt, str):
             return json.loads(fmt, object_pairs_hook=dictionary)
-        elif isinstance(fmt, OrderedDict):
+        elif isinstance(fmt, dictionary):
             return fmt
         elif isinstance(fmt, dict):
-            if sys.version_info < (3, 7):
-                warnings.warn("Your Python version is below 3.7.0, the key's order of dict may be different from the definition, Please Use `OrderedDict`.", UserWarning)
-                return dictionary([(k, fmt[k]) for k in sorted(fmt.keys())])
+            warnings.warn(
+                "Current Python version is below 3.7.0, the key's order of dict may be different from the definition, Please Use `OrderedDict` replace.", UserWarning)
+            return dictionary([(k, fmt[k]) for k in sorted(fmt.keys())])
         else:
-            raise TypeError('fmt must be jsong sting, OrderedDcit or dict type.')
+            raise TypeError(
+                'The type `%s` is not supported, fmt must be `string` with json format, `OrderedDcit` or `dict` type. ' % type(fmt))
 
     def checkRecordCustomAttrs(self, record_custom_attrs):
         if isinstance(record_custom_attrs, dict):
