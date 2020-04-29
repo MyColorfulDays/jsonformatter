@@ -13,6 +13,7 @@ import json
 import logging
 import sys
 import warnings
+from string import Template
 
 # From python3.7, dict is in ordered,so do json package's load(s)/dump(s).
 # https://docs.python.org/3.7/library/stdtypes.html#dict
@@ -22,6 +23,62 @@ if sys.version_info >= (3, 7):
 else:
     from collections import OrderedDict
     dictionary = OrderedDict
+
+
+class PercentStyle(object):
+
+    asctime_format = '%(asctime)s'
+    asctime_search = '%(asctime)'
+
+    def __init__(self, fmt):
+        self._fmt = ''
+
+    def usesTime(self):
+        return self._fmt.find(self.asctime_search) >= 0
+
+    def format(self, record):
+        return self._fmt % record.__dict__
+
+
+class StrFormatStyle(PercentStyle):
+
+    asctime_format = '{asctime}'
+    asctime_search = '{asctime'
+
+    def format(self, record):
+        return self._fmt.format(**record.__dict__)
+
+
+class StringTemplateStyle(PercentStyle):
+
+    asctime_format = '${asctime}'
+    asctime_search = '${asctime}'
+
+    def __init__(self, fmt):
+        PercentStyle.__init__(self, fmt)
+        self._tpl = {}
+        for _, v in fmt.items():
+            self._tpl[v] = Template(v)
+
+    def usesTime(self):
+        fmt = self._fmt
+        return fmt.find('$asctime') >= 0 or fmt.find(self.asctime_format) >= 0
+
+    def format(self, record):
+        return self._tpl[self._fmt].substitute(**record.__dict__)
+
+
+BASIC_FORMAT = dictionary([
+    ('levelname', 'levelname'),
+    ('name', 'name'),
+    ('message', 'message')
+])
+
+_STYLES = {
+    '%': PercentStyle,
+    '{': StrFormatStyle,
+    '$': StringTemplateStyle,
+}
 
 
 class JsonFormatter(logging.Formatter):
@@ -77,17 +134,20 @@ class JsonFormatter(logging.Formatter):
             return dictionary([(k, fmt[k]) for k in sorted(fmt.keys())])
         else:
             raise TypeError(
-                'The type `%s` is not supported, fmt must be `string` with json format, `OrderedDcit` or `dict` type. ' % type(fmt))
+                '`%s` type is not supported, `fmt` must be `json`, `OrderedDcit` or `dict` type. ' % type(fmt))
 
     def checkRecordCustomAttrs(self, record_custom_attrs):
-        if isinstance(record_custom_attrs, dict):
-            for attr, value in record_custom_attrs.items():
-                if not callable(value):
-                    raise TypeError('%s is not callable.' % value)
+        if record_custom_attrs:
+            if isinstance(record_custom_attrs, dict):
+                for attr, func in record_custom_attrs.items():
+                    if not callable(func):
+                        raise TypeError('`%s` is not callable.' % func)
+            else:
+                raise TypeError('`record_custom_attrs` must be `dict` type.')
         else:
-            raise TypeError('record_custom_attrs must be dict type.')
+            return
 
-    def __init__(self, fmt=None, datefmt=None, style='%', record_custom_attrs=None, skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=None, indent=None, separators=None, default=None, sort_keys=False, **kw):
+    def __init__(self, fmt=BASIC_FORMAT, datefmt=None, style='%', record_custom_attrs=None, skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=None, indent=None, separators=None, default=None, sort_keys=False, **kw):
         """
         If ``record_custom_attrs`` is not ``None``, it must be a ``dict`` type, the key of dict will be setted as LogRecord's attribute, the value of key must be a callable object and without parameters, it returned obj will be setted as attribute's value of LogRecord.
 
@@ -129,13 +189,27 @@ class JsonFormatter(logging.Formatter):
         the ``cls`` kwarg; otherwise ``JSONEncoder`` is used.
 
         """
-        if record_custom_attrs:
-            self.checkRecordCustomAttrs(record_custom_attrs)
+        # compatible python2 start
+        if sys.version_info < (3, 0):
+            logging.Formatter.__init__(
+                self, fmt='', datefmt=datefmt)
 
-        logging.Formatter.__init__(self, fmt='', datefmt=datefmt, style=style)
+            if style not in _STYLES:
+                raise ValueError('`style` must be one of: %s' % ','.join(
+                                 _STYLES.keys()))
+        else:
+            logging.Formatter.__init__(
+                self, fmt='', datefmt=datefmt, style=style)
+        # compatible python2 end
 
+        self.json_fmt = self.parseFmt(fmt)
         self.record_custom_attrs = record_custom_attrs
+        self._style = _STYLES[style](self.json_fmt)
         self._style._fmt = ''
+
+        self.checkRecordCustomAttrs(self.record_custom_attrs)
+
+        # support `json.dumps` parameters start
         self.skipkeys = skipkeys
         self.ensure_ascii = ensure_ascii
         self.check_circular = check_circular
@@ -146,8 +220,7 @@ class JsonFormatter(logging.Formatter):
         self.default = default
         self.sort_keys = sort_keys
         self.kw = kw
-
-        self.json_fmt = self.parseFmt(fmt)
+        # support `json.dumps` parameters end
 
     def setRecordMessage(self, record, msg, args):
         if not isinstance(msg, (str, int, float, bool, type(None))):
@@ -168,11 +241,12 @@ class JsonFormatter(logging.Formatter):
             if record.message[-1:] != "\n":
                 record.message = record.message + "\n"
             record.message = record.message + record.exc_text
-        if record.stack_info:
+        if getattr(record, 'stack_info', None):
             record.message = str(record.message)
             if record.message[-1:] != "\n":
                 record.message = record.message + "\n"
-            record.message = record.message + self.formatStack(record.stack_info)
+            record.message = record.message + \
+                self.formatStack(record.stack_info)
 
     def setRecordCustomAttrs(self, record):
         if self.record_custom_attrs:
@@ -185,9 +259,10 @@ class JsonFormatter(logging.Formatter):
     def format(self, record):
         result = dictionary()
 
-        # store origin attributes
+        # store `record` origin attributes start
         _msg, _args = record.msg, record.args
         record.msg, record.args = '', tuple()
+        # store `record` origin attributes end
 
         self.setRecordMessage(record, _msg, _args)
 
@@ -197,10 +272,17 @@ class JsonFormatter(logging.Formatter):
             self.setRecordCustomAttrs(record)
 
         for k, v in self.json_fmt.items():
-            self._style._fmt = v
-            result[k] = getattr(record, v, None) if v in record.__dict__ else self.formatMessage(record)
+            # this is for keeping `record` attribute `type`
+            if v in record.__dict__:
+                result[k] = getattr(record, v, None)
+            # this is for convert to string
+            else:
+                self._style._fmt = v
+                result[k] = self.formatMessage(record)
         self._style._fmt = ''
-        # apply origin attributes
+
+        # apply `record` origin attributes start
         record.msg, record.args = _msg, _args
+        # apply `record` origin attributes end
 
         return json.dumps(result, skipkeys=self.skipkeys, ensure_ascii=self.ensure_ascii, check_circular=self.check_circular, allow_nan=self.allow_nan, cls=self.cls, indent=self.indent, separators=self.separators, default=self.default, sort_keys=self.sort_keys, **self.kw)

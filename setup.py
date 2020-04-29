@@ -13,7 +13,7 @@ from setuptools import setup
 
 setup(
     name='jsonformatter',
-    version='0.1.4',
+    version='0.2.0',
     description=(
         'Python log in json format.'
     ),
@@ -25,11 +25,12 @@ setup(
         'Intended Audience :: Developers',
         'License :: OSI Approved :: BSD License',
         'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
         'Programming Language :: Python :: Implementation :: CPython',
         'Topic :: Utilities',
     ],
-    python_requires='>=3',
+    python_requires='>=2.7',
     author='MyColorfulDays',
     author_email='my_colorful_days@163.com',
     url='https://github.com/MyColorfulDays/jsonformatter.git',
