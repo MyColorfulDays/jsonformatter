@@ -37,7 +37,7 @@ class PercentStyle(object):
         return self._fmt.find(self.asctime_search) >= 0
 
     def format(self, record):
-        return str(self._fmt) % record.__dict__
+        return self._fmt % record.__dict__
 
 
 class StrFormatStyle(PercentStyle):
@@ -46,7 +46,7 @@ class StrFormatStyle(PercentStyle):
     asctime_search = '{asctime'
 
     def format(self, record):
-        return str(self._fmt).format(**record.__dict__)
+        return self._fmt.format(**record.__dict__)
 
 
 class StringTemplateStyle(PercentStyle):
@@ -58,7 +58,7 @@ class StringTemplateStyle(PercentStyle):
         PercentStyle.__init__(self, fmt)
         self._tpl = {}
         for _, v in fmt.items():
-            self._tpl[v] = Template(str(v))
+            self._tpl[v] = Template(v)
 
     def usesTime(self):
         fmt = self._fmt
@@ -220,6 +220,7 @@ class JsonFormatter(logging.Formatter):
         self.cls = cls
         self.indent = indent
         self.separators = separators
+        self.encoding = encoding
         self.default = default
         self.sort_keys = sort_keys
         self.kw = kw
@@ -262,10 +263,10 @@ class JsonFormatter(logging.Formatter):
     def format(self, record):
         result = dictionary()
 
-        # store `record` origin attributes start
+        # store `record` origin attributes, prevent other formatter use record error start
         _msg, _args = record.msg, record.args
         record.msg, record.args = '', tuple()
-        # store `record` origin attributes end
+        # store `record` origin attributes, prevent other formatter use record error end
 
         self.setRecordMessage(record, _msg, _args)
 
@@ -273,6 +274,13 @@ class JsonFormatter(logging.Formatter):
 
         if self.record_custom_attrs:
             self.setRecordCustomAttrs(record)
+
+        # compatible python2 start
+        if sys.version_info < (3, 0):
+            for k, v in record.__dict__.items():
+                if isinstance(v, str):
+                    record.__dict__.update({k: v.decode(self.encoding)})
+        # compatible python2 end
 
         for k, v in self.json_fmt.items():
             # this is for keeping `record` attribute `type`
@@ -284,8 +292,8 @@ class JsonFormatter(logging.Formatter):
                 result[k] = self.formatMessage(record)
         self._style._fmt = ''
 
-        # apply `record` origin attributes start
+        # apply `record` origin attributes, prevent other formatter use record error start
         record.msg, record.args = _msg, _args
-        # apply `record` origin attributes end
+        # apply `record` origin attributes, prevent other formatter use record error end
 
         return json.dumps(result, skipkeys=self.skipkeys, ensure_ascii=self.ensure_ascii, check_circular=self.check_circular, allow_nan=self.allow_nan, cls=self.cls, indent=self.indent, separators=self.separators, default=self.default, sort_keys=self.sort_keys, **self.kw)

@@ -8,16 +8,28 @@ Email: yourname@email.com
 Github: https://github.com/yourname
 Description: setup.py
 """
-
+import sys
 from setuptools import setup
+
+long_description = ''
+
+try:
+    if 'win' in sys.platform and sys.version_info >= (3, 0):
+        with open('README.md', encoding='utf-8') as r:
+            long_description = r.read()
+    else:
+        with open('README.md') as r:
+            long_description = r.read()
+except Exception as e:
+    pass
 
 setup(
     name='jsonformatter',
-    version='0.2.2',
+    version='0.2.3',
     description=(
         'Python log in json format.'
     ),
-    long_description=open('README.md').read(),
+    long_description=long_description,
     long_description_content_type="text/markdown",
     platforms=["all"],
     classifiers=[

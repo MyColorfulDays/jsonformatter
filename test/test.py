@@ -145,7 +145,8 @@ class JsonFormatterTest(unittest.TestCase):
         root = logging.getLogger()
         root.setLevel(logging.INFO)
 
-        formatter = JsonFormatter("""{"log":"%(message)s"}""", style="%")
+        formatter = JsonFormatter(
+            """{"log":"%(message)s"}""", style="%", ensure_ascii=False)
 
         sh = logging.StreamHandler()
         sh.setFormatter(formatter)
@@ -158,7 +159,8 @@ class JsonFormatterTest(unittest.TestCase):
         root = logging.getLogger()
         root.setLevel(logging.INFO)
 
-        formatter = JsonFormatter("""{"log":"{message}"}""", style="{")
+        formatter = JsonFormatter(
+            """{"log":"{message}"}""", style="{", ensure_ascii=False)
 
         sh = logging.StreamHandler()
         sh.setFormatter(formatter)
@@ -171,7 +173,8 @@ class JsonFormatterTest(unittest.TestCase):
         root = logging.getLogger()
         root.setLevel(logging.INFO)
 
-        formatter = JsonFormatter("""{"log":"${message}"}""", style="$")
+        formatter = JsonFormatter(
+            """{"log":"${message}"}""", style="$", ensure_ascii=False)
 
         sh = logging.StreamHandler()
         sh.setFormatter(formatter)
