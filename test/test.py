@@ -141,6 +141,45 @@ class JsonFormatterTest(unittest.TestCase):
 
         root.info("test %s style", 'template')
 
+    def test_percent_style_unicode(self):
+        root = logging.getLogger()
+        root.setLevel(logging.INFO)
+
+        formatter = JsonFormatter("""{"log":"%(message)s"}""", style="%")
+
+        sh = logging.StreamHandler()
+        sh.setFormatter(formatter)
+        sh.setLevel(logging.INFO)
+
+        root.addHandler(sh)
+        root.info('test percent style unicode: %s', '中文')
+
+    def test_format_style_unicode(self):
+        root = logging.getLogger()
+        root.setLevel(logging.INFO)
+
+        formatter = JsonFormatter("""{"log":"{message}"}""", style="{")
+
+        sh = logging.StreamHandler()
+        sh.setFormatter(formatter)
+        sh.setLevel(logging.INFO)
+
+        root.addHandler(sh)
+        root.info('test format style unicode: %s', '中文')
+
+    def test_template_style_unicode(self):
+        root = logging.getLogger()
+        root.setLevel(logging.INFO)
+
+        formatter = JsonFormatter("""{"log":"${message}"}""", style="$")
+
+        sh = logging.StreamHandler()
+        sh.setFormatter(formatter)
+        sh.setLevel(logging.INFO)
+
+        root.addHandler(sh)
+        root.info('test template style unicode: %s', '中文')
+
     def test_dict_format(self):
         DICT_FORMAT = {
             "name": "name",

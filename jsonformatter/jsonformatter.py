@@ -37,7 +37,7 @@ class PercentStyle(object):
         return self._fmt.find(self.asctime_search) >= 0
 
     def format(self, record):
-        return self._fmt % record.__dict__
+        return str(self._fmt) % record.__dict__
 
 
 class StrFormatStyle(PercentStyle):
@@ -46,7 +46,7 @@ class StrFormatStyle(PercentStyle):
     asctime_search = '{asctime'
 
     def format(self, record):
-        return self._fmt.format(**record.__dict__)
+        return str(self._fmt).format(**record.__dict__)
 
 
 class StringTemplateStyle(PercentStyle):
@@ -58,7 +58,7 @@ class StringTemplateStyle(PercentStyle):
         PercentStyle.__init__(self, fmt)
         self._tpl = {}
         for _, v in fmt.items():
-            self._tpl[v] = Template(v)
+            self._tpl[v] = Template(str(v))
 
     def usesTime(self):
         fmt = self._fmt
@@ -147,7 +147,7 @@ class JsonFormatter(logging.Formatter):
         else:
             return
 
-    def __init__(self, fmt=BASIC_FORMAT, datefmt=None, style='%', record_custom_attrs=None, skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=None, indent=None, separators=None, default=None, sort_keys=False, **kw):
+    def __init__(self, fmt=BASIC_FORMAT, datefmt=None, style='%', record_custom_attrs=None, skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=None, indent=None, separators=None, encoding='utf-8', default=None, sort_keys=False, **kw):
         """
         If ``record_custom_attrs`` is not ``None``, it must be a ``dict`` type, the key of dict will be setted as LogRecord's attribute, the value of key must be a callable object and without parameters, it returned obj will be setted as attribute's value of LogRecord.
 
@@ -178,6 +178,8 @@ class JsonFormatter(logging.Formatter):
         ``(',', ': ')`` otherwise.  To get the most compact JSON representation,
         you should specify ``(',', ':')`` to eliminate whitespace.
 
+        ``encoding`` is the character encoding for str instances, only supported by python 2.7, default is UTF-8.
+
         ``default(obj)`` is a function that should return a serializable version
         of obj or raise TypeError. The default simply raises TypeError.
 
@@ -191,6 +193,7 @@ class JsonFormatter(logging.Formatter):
         """
         # compatible python2 start
         if sys.version_info < (3, 0):
+            kw.update(encoding=encoding)
             logging.Formatter.__init__(
                 self, fmt='', datefmt=datefmt)
 

@@ -19,7 +19,7 @@ Table of Contents
 
 **jsonformatter** is a formatter for python output json log,  you can easily output **LogStash** needed log format or other **custom** json format  and  you can easily **custom(add/replace)** `LogRecord` attribute.
 
-**Python 2.7** and **python 3** are supported from version 0.2.0,  if you are using a version lower than 0.2.0,  **python 3** is only supported.
+**Python 2.7** and **python 3** are supported from version 0.2.X,  if you are using a version lower than 0.2.X,  **python 3** is only supported.
 
 
 
