@@ -8,8 +8,8 @@
         - [Case 5. In `Django` project, config `LOGGING`](#case-5-in-django-project-config-logging)
     - [More Usage](#more-usage)
         - [Case 1. Mix `extra` to output](#case-1-mix-extra-to-output)
-        - [Case 2. output multiple attributes in one key](#case-2-output-multiple-attributes-in-one-key)
-        - [Case 3. support `json.dumps` all optional parameters](#case-3-support-jsondumps-all-optional-parameters)
+        - [Case 2. Output multiple attributes in one key](#case-2-output-multiple-attributes-in-one-key)
+        - [Case 3. Support `json.dumps` all optional parameters](#case-3-support-jsondumps-all-optional-parameters)
         - [Case 4. Solve cumtom `LogRecord` attribute is not `JSON serializable`](#case-4-solve-cumtom-logrecord-attribute-is-not-json-serializable)
     - [LogRecord Attributes](#logrecord-attributes)
 
@@ -335,7 +335,7 @@ output:
 
 
 
-### Case 2. output multiple attributes in one key
+### Case 2. Output multiple attributes in one key
 ```python
 import logging
 
@@ -363,7 +363,7 @@ root.info('test multi attributes in one key')
 
 
 
-### Case 3. support `json.dumps` all optional parameters
+### Case 3. Support `json.dumps` all optional parameters
 
 ```python
 import logging
