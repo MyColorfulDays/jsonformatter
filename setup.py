@@ -25,7 +25,7 @@ except Exception as e:
 
 setup(
     name='jsonformatter',
-    version='0.2.3',
+    version='0.3.0',
     description=(
         'Python log in json format.'
     ),

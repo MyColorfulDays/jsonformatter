@@ -21,7 +21,7 @@ if __file__ == 'test_windows.py':
     import sys
     sys.path.insert(0, '..')
 
-from jsonformatter import JsonFormatter
+from jsonformatter import JsonFormatter, basicConfig
 
 
 class JsonFormatterTest(unittest.TestCase):
@@ -145,7 +145,8 @@ class JsonFormatterTest(unittest.TestCase):
         root = logging.getLogger()
         root.setLevel(logging.INFO)
 
-        formatter = JsonFormatter("""{"log":"%(message)s"}""", style="%", encoding='gbk', ensure_ascii=False)
+        formatter = JsonFormatter(
+            """{"log":"%(message)s"}""", style="%", encoding='gbk', ensure_ascii=False)
 
         sh = logging.StreamHandler()
         sh.setFormatter(formatter)
@@ -158,7 +159,8 @@ class JsonFormatterTest(unittest.TestCase):
         root = logging.getLogger()
         root.setLevel(logging.INFO)
 
-        formatter = JsonFormatter("""{"log":"{message}"}""", style="{", encoding='gbk', ensure_ascii=False)
+        formatter = JsonFormatter(
+            """{"log":"{message}"}""", style="{", encoding='gbk', ensure_ascii=False)
 
         sh = logging.StreamHandler()
         sh.setFormatter(formatter)
@@ -171,7 +173,8 @@ class JsonFormatterTest(unittest.TestCase):
         root = logging.getLogger()
         root.setLevel(logging.INFO)
 
-        formatter = JsonFormatter("""{"log":"${message}"}""", style="$", encoding='gbk', ensure_ascii=False)
+        formatter = JsonFormatter(
+            """{"log":"${message}"}""", style="$", encoding='gbk', ensure_ascii=False)
 
         sh = logging.StreamHandler()
         sh.setFormatter(formatter)
@@ -338,7 +341,7 @@ class JsonFormatterTest(unittest.TestCase):
         root.setLevel(logging.INFO)
 
         sh = logging.StreamHandler()
-        formatter = JsonFormatter(ensure_ascii=False)
+        formatter = JsonFormatter(ensure_ascii=False, encoding='gbk')
         sh.setFormatter(formatter)
 
         sh.setLevel(logging.INFO)
@@ -352,6 +355,126 @@ class JsonFormatterTest(unittest.TestCase):
             __file__), 'logger_config.ini'))
         root = logging.getLogger('root')
         root.info('test file config')
+
+    def test_multi_handlers(self):
+        root = logging.getLogger()
+        root.setLevel(logging.INFO)
+
+        sh = logging.StreamHandler()
+        formatter = JsonFormatter(ensure_ascii=False, encoding='gbk')
+        sh.setFormatter(formatter)
+        sh.setLevel(logging.INFO)
+        root.addHandler(sh)
+
+        sh = logging.StreamHandler()
+        formatter = JsonFormatter(ensure_ascii=False, encoding='gbk')
+        sh.setFormatter(formatter)
+        sh.setLevel(logging.INFO)
+        root.addHandler(sh)
+
+        sh = logging.StreamHandler()
+        formatter = logging.Formatter('%(message)s')
+        sh.setFormatter(formatter)
+        sh.setLevel(logging.INFO)
+        root.addHandler(sh)
+
+        root.info('test multi handlers')
+
+    def test_mix_extra(self):
+        root = logging.getLogger()
+        root.setLevel(logging.INFO)
+
+        sh = logging.StreamHandler()
+        formatter = JsonFormatter(
+            ensure_ascii=False, encoding='gbk', mix_extra=True, indent=4)
+        sh.setFormatter(formatter)
+        sh.setLevel(logging.INFO)
+        root.addHandler(sh)
+        root.info(
+            'test mix extra in fmt',
+            extra={
+                'extra1': 'extra content 1',
+                'extra2': 'extra content 2'
+            })
+        root.info(
+            'test mix extra in fmt',
+            extra={
+                'extra3': 'extra content 3',
+                'extra4': 'extra content 4'
+            })
+
+    def test_mix_extra_position_is_head(self):
+        root = logging.getLogger()
+        root.setLevel(logging.INFO)
+
+        sh = logging.StreamHandler()
+        formatter = JsonFormatter(
+            ensure_ascii=False, encoding='gbk', mix_extra=True, mix_extra_position='head', indent=4)
+        sh.setFormatter(formatter)
+        sh.setLevel(logging.INFO)
+        root.addHandler(sh)
+        root.info('test mix extra position is head',
+                  extra={'extra': 'extra content'})
+
+    def test_mix_extra_position_is_mix(self):
+        root = logging.getLogger()
+        root.setLevel(logging.INFO)
+
+        sh = logging.StreamHandler()
+        formatter = JsonFormatter(
+            ensure_ascii=False, encoding='gbk', mix_extra=True, mix_extra_position='mix', indent=4)
+        sh.setFormatter(formatter)
+        sh.setLevel(logging.INFO)
+        root.addHandler(sh)
+        root.info('test mix extra position is mix',
+                  extra={'extra': 'extra content'})
+
+    def test_record_custom_attrs_with_kwargs(self):
+        def _new_custom_attribute_status(**record_attrs):
+            if record_attrs['levelname'] in ['ERROR', 'CRITICAL']:
+                return 'failed'
+            else:
+                return 'success'
+
+        RECORD_CUSTOM_ATTRS = {
+            'status': _new_custom_attribute_status,
+        }
+
+        RECORD_CUSTOM_FORMAT = OrderedDict([
+            ("status", "status"),  # new custom attribute
+            ("log", "message")
+        ])
+        root = logging.getLogger()
+        root.setLevel(logging.INFO)
+
+        datefmt = None
+        sh = logging.StreamHandler()
+        formatter = JsonFormatter(
+            RECORD_CUSTOM_FORMAT,
+            record_custom_attrs=RECORD_CUSTOM_ATTRS
+        )
+        sh.setFormatter(formatter)
+
+        sh.setLevel(logging.INFO)
+
+        root.addHandler(sh)
+        root.info('test record custom attrs with kwargs')
+        root.error('test record custom attrs with kwargs')
+
+    def test_basic_config_level(self):
+        basicConfig(level=logging.INFO)
+        logging.info('basic config level')
+
+    def test_basic_config_format(self):
+        basicConfig(
+            level=logging.INFO,
+            format="""{
+            "levelname": "levelname",
+            "name": "name",
+            "log": "message"
+            }"""
+        )
+        logging.info('basic config format')
 
     def tearDown(self):
         root = logging.getLogger()

@@ -8,11 +8,12 @@ Email: yourname@email.com
 Github: https://github.com/yourname
 Description: jsonformatter.py
 """
-import datetime
+import inspect
 import json
 import logging
 import sys
 import warnings
+from functools import wraps, partial
 from string import Template
 
 # From python3.7, dict is in ordered,so do json package's load(s)/dump(s).
@@ -23,6 +24,11 @@ if sys.version_info >= (3, 7):
 else:
     from collections import OrderedDict
     dictionary = OrderedDict
+
+# compatible python2, python 3  no long type, start
+if sys.version_info >= (3, 0):
+    long = int
+# compatible python2, python 3  no long type, end
 
 
 class PercentStyle(object):
@@ -80,6 +86,37 @@ _STYLES = {
     '$': StringTemplateStyle,
 }
 
+_LogRecordDefaultAttributes = {
+    'name',
+    'msg',
+    'args',
+    'levelname',
+    'levelno',
+    'pathname',
+    'filename',
+    'module',
+    'exc_info',
+    'exc_text',
+    'stack_info',
+    'lineno',
+    'funcName',
+    'created',
+    'msecs',
+    'relativeCreated',
+    'thread',
+    'threadName',
+    'processName',
+    'process',
+    'message',
+    'asctime'
+}
+
+_MIX_EXTRA_ORDER = {
+    'head',
+    'tail',
+    'mix'
+}
+
 
 class JsonFormatter(logging.Formatter):
     """
@@ -130,26 +167,71 @@ class JsonFormatter(logging.Formatter):
             return fmt
         elif isinstance(fmt, dict):
             warnings.warn(
-                "Current Python version is below 3.7.0, the key's order of dict may be different from the definition, Please Use `OrderedDict` replace.", UserWarning)
-            return dictionary([(k, fmt[k]) for k in sorted(fmt.keys())])
+                "Current python version is lower than 3.7.0, the key's order of dict may be different with definition, please use `OrderedDict` replace.", UserWarning)
+            return dictionary((k, fmt[k]) for k in sorted(fmt.keys()))
         else:
             raise TypeError(
                 '`%s` type is not supported, `fmt` must be `json`, `OrderedDcit` or `dict` type. ' % type(fmt))
 
     def checkRecordCustomAttrs(self, record_custom_attrs):
+        def _patch_no_params_func_accept_kwargs(func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                return func(*args)
+            return wrapper
+
         if record_custom_attrs:
             if isinstance(record_custom_attrs, dict):
                 for attr, func in record_custom_attrs.items():
                     if not callable(func):
                         raise TypeError('`%s` is not callable.' % func)
+
+                    if inspect.isfunction(func):
+                        argspec = getattr(inspect, 'getfullargspec',
+                                          inspect.getargspec)(func)
+                        if argspec.args:
+                            raise TypeError(
+                                "`%s` must no Positional Parameters." % func.__name__
+                            )
+                        else:
+                            if not (
+                                getattr(argspec, 'keywords', False) or
+                                    getattr(argspec, 'varkw', False)
+                            ):
+                                record_custom_attrs[attr] = _patch_no_params_func_accept_kwargs(
+                                    func
+                                )
+                    else:
+                        if isinstance(func, partial):
+                            warnings.warn(
+                                "`%s` is a partial function, please make sure no positional parameters in function signature." % (func), UserWarning)
+                        elif hasattr(func, '__call__'):
+                            warnings.warn(
+                                "`%s` is a callable instance, please make sure no positional parameters in method signature." % (func), UserWarning)
+                        else:
+                            warnings.warn(
+                                "`%s` is a unknown callable type, please make sure no positional parameters in function/method signature." % (func), UserWarning)
             else:
                 raise TypeError('`record_custom_attrs` must be `dict` type.')
         else:
             return
 
-    def __init__(self, fmt=BASIC_FORMAT, datefmt=None, style='%', record_custom_attrs=None, skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=None, indent=None, separators=None, encoding='utf-8', default=None, sort_keys=False, **kw):
+    def __init__(self, fmt=BASIC_FORMAT, datefmt=None, style='%', record_custom_attrs=None, mix_extra=False, mix_extra_position='tail', skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=None, indent=None, separators=None, encoding='utf-8', default=None, sort_keys=False, **kw):
         """
-        If ``record_custom_attrs`` is not ``None``, it must be a ``dict`` type, the key of dict will be setted as LogRecord's attribute, the value of key must be a callable object and without parameters, it returned obj will be setted as attribute's value of LogRecord.
+        If ``style`` not in ``['%', '{', '$']``, a ``ValueError`` will be raised.
+
+        If ``record_custom_attrs`` is not ``None``, it must be a ``dict``
+        type, the key of dict will be setted as ``LogRecord``'s attribute, the
+        value of key must be a callable object and no positional
+        parameters(e.g. ``lambda: None``, ``lambda **log_reocrd_attrs: None``), it 
+        returned will be setted as attribute's value of ``LogRecord``.
+
+        If ``mix_extra`` is ``True``, the keys of ``extra`` different with ``fmt``
+        will be added to log, the keys' value of ``extra`` same with ``fmt`` 
+        will overwrite ``fmt``.
+
+        If ``mix_extra_position`` not in ``['head', 'tail' or 'mix']``, a
+        ``ValueError`` will be raised.
 
         If ``skipkeys`` is true then ``dict`` keys that are not basic types
         (``str``, ``int``, ``float``, ``bool``, ``None``) will be skipped
@@ -178,7 +260,8 @@ class JsonFormatter(logging.Formatter):
         ``(',', ': ')`` otherwise.  To get the most compact JSON representation,
         you should specify ``(',', ':')`` to eliminate whitespace.
 
-        ``encoding`` is the character encoding for str instances, only supported by python 2.7, default is UTF-8.
+        ``encoding`` is the character encoding for str instances, only
+        supported by python 2.7, default is UTF-8.
 
         ``default(obj)`` is a function that should return a serializable version
         of obj or raise TypeError. The default simply raises TypeError.
@@ -191,15 +274,17 @@ class JsonFormatter(logging.Formatter):
         the ``cls`` kwarg; otherwise ``JSONEncoder`` is used.
 
         """
+        if style not in _STYLES:
+            raise ValueError('`style` must be one of: %s' % ','.join(
+                             _STYLES.keys()))
+        if mix_extra_position not in _MIX_EXTRA_ORDER:
+            raise ValueError('`mix_extra_position` must be one of: %s' % ','.join(
+                             _MIX_EXTRA_ORDER))
         # compatible python2 start
         if sys.version_info < (3, 0):
             kw.update(encoding=encoding)
             logging.Formatter.__init__(
                 self, fmt='', datefmt=datefmt)
-
-            if style not in _STYLES:
-                raise ValueError('`style` must be one of: %s' % ','.join(
-                                 _STYLES.keys()))
         else:
             logging.Formatter.__init__(
                 self, fmt='', datefmt=datefmt, style=style)
@@ -209,6 +294,8 @@ class JsonFormatter(logging.Formatter):
         self.record_custom_attrs = record_custom_attrs
         self._style = _STYLES[style](self.json_fmt)
         self._style._fmt = ''
+        self.mix_extra = mix_extra
+        self.mix_extra_position = mix_extra_position
 
         self.checkRecordCustomAttrs(self.record_custom_attrs)
 
@@ -226,14 +313,15 @@ class JsonFormatter(logging.Formatter):
         self.kw = kw
         # support `json.dumps` parameters end
 
-    def setRecordMessage(self, record, msg, args):
-        if not isinstance(msg, (str, int, float, bool, type(None))):
-            record.message = str(msg)
+    def setRecordMessage(self, record):
+        if isinstance(record.msg, (int, long, float, bool, type(None))):
+            # keep these types without quote when output
+            record.message = record.msg
         else:
-            record.message = msg
+            record.message = str(record.msg)
 
-        if args:
-            record.message = str(record.message) % args
+        if record.args:
+            record.message = str(record.message) % record.args
 
         if record.exc_info:
             # Cache the traceback text to avoid converting it multiple times
@@ -245,32 +333,60 @@ class JsonFormatter(logging.Formatter):
             if record.message[-1:] != "\n":
                 record.message = record.message + "\n"
             record.message = record.message + record.exc_text
+        # compatible python2, record no stack_info attribute in python2, start
         if getattr(record, 'stack_info', None):
             record.message = str(record.message)
             if record.message[-1:] != "\n":
                 record.message = record.message + "\n"
             record.message = record.message + \
                 self.formatStack(record.stack_info)
+        # compatible python2, record no stack_info attribute in python2, end
+
+    def getRecordExtraAttrs(self, record):
+        extras = {
+            k: record.__dict__[k]
+            for k in record.__dict__
+            if k not in _LogRecordDefaultAttributes
+        }
+        if sys.version_info >= (3, 7):
+            return extras
+        else:
+            return dictionary((k, extras[k]) for k in sorted(extras.keys()))
 
     def setRecordCustomAttrs(self, record):
-        if self.record_custom_attrs:
-            for k, v in self.record_custom_attrs.items():
-                setattr(record, k, v())
+        for k, v in self.record_custom_attrs.items():
+            setattr(record, k, v(**record.__dict__))
 
     def formatMessage(self, record):
         return self._style.format(record)
 
     def format(self, record):
+        def _set_extra_to_result():
+            for k, v in extra.items():
+                if k not in self.json_fmt:
+                    result[k] = v
+
+        def _set_fmt_to_result():
+            # this is for keeping `record` attribute `type`
+            if v in record.__dict__:
+                result[k] = getattr(record, v, None)
+            # this is for convert to string
+            else:
+                self._style._fmt = v
+                result[k] = self.formatMessage(record)
+
         result = dictionary()
 
-        # store `record` origin attributes, prevent other formatter use record error start
-        _msg, _args = record.msg, record.args
-        record.msg, record.args = '', tuple()
-        # store `record` origin attributes, prevent other formatter use record error end
-
-        self.setRecordMessage(record, _msg, _args)
+        self.setRecordMessage(record)
 
         record.asctime = self.formatTime(record, self.datefmt)
+
+        # pop stored __extra start
+        extra = record.__dict__.pop('__extra', None)
+        if extra is None:
+            # extra is dictionary
+            extra = self.getRecordExtraAttrs(record)
+        # pop stored __extra end
 
         if self.record_custom_attrs:
             self.setRecordCustomAttrs(record)
@@ -282,18 +398,136 @@ class JsonFormatter(logging.Formatter):
                     record.__dict__.update({k: v.decode(self.encoding)})
         # compatible python2 end
 
-        for k, v in self.json_fmt.items():
-            # this is for keeping `record` attribute `type`
-            if v in record.__dict__:
-                result[k] = getattr(record, v, None)
-            # this is for convert to string
-            else:
-                self._style._fmt = v
-                result[k] = self.formatMessage(record)
+        if not self.mix_extra:
+            for k, v in self.json_fmt.items():
+                _set_fmt_to_result()
+        else:
+            if self.mix_extra_position == 'head':
+                _set_extra_to_result()
+            for k, v in self.json_fmt.items():
+                if k in extra:
+                    result[k] = extra[k]
+                else:
+                    _set_fmt_to_result()
+            if self.mix_extra_position == 'tail':
+                _set_extra_to_result()
+            if self.mix_extra_position == 'mix':
+                _set_extra_to_result()
+                result = dictionary(
+                    (k, result[k])
+                    for k in sorted(result.keys())
+                )
+
         self._style._fmt = ''
 
-        # apply `record` origin attributes, prevent other formatter use record error start
-        record.msg, record.args = _msg, _args
-        # apply `record` origin attributes, prevent other formatter use record error end
+        # store __extra start
+        record.__extra = extra
+        # store __extra end
 
-        return json.dumps(result, skipkeys=self.skipkeys, ensure_ascii=self.ensure_ascii, check_circular=self.check_circular, allow_nan=self.allow_nan, cls=self.cls, indent=self.indent, separators=self.separators, default=self.default, sort_keys=self.sort_keys, **self.kw)
+        return json.dumps(
+            result,
+            skipkeys=self.skipkeys,
+            ensure_ascii=self.ensure_ascii,
+            check_circular=self.check_circular,
+            allow_nan=self.allow_nan,
+            cls=self.cls,
+            indent=self.indent,
+            separators=self.separators,
+            default=self.default,
+            sort_keys=self.sort_keys,
+            **self.kw
+        )
+
+
+def basicConfig(**kwargs):
+    """
+    Do basic configuration for the logging system.
+
+    This function does nothing if the root logger already has handlers
+    configured. It is a convenience method intended for use by simple scripts
+    to do one-shot configuration of the logging package.
+
+    The default behaviour is to create a StreamHandler which writes to
+    sys.stderr, set a formatter using the BASIC_FORMAT format string, and
+    add the handler to the root logger.
+
+    A number of optional keyword arguments may be specified, which can alter
+    the default behaviour.
+
+    filename  Specifies that a FileHandler be created, using the specified
+              filename, rather than a StreamHandler.
+    filemode  Specifies the mode to open the file, if filename is specified
+              (if filemode is unspecified, it defaults to 'a').
+    format    Use the specified format string for the handler.
+    datefmt   Use the specified date/time format.
+    style     If a format string is specified, use this to specify the
+              type of format string (possible values '%', '{', '$', for
+              %-formatting, :meth:`str.format` and :class:`string.Template`
+              - defaults to '%').
+    level     Set the root logger level to the specified level.
+    stream    Use the specified stream to initialize the StreamHandler. Note
+              that this argument is incompatible with 'filename' - if both
+              are present, 'stream' is ignored.
+    handlers  If specified, this should be an iterable of already created
+              handlers, which will be added to the root handler. Any handler
+              in the list which does not have a formatter assigned will be
+              assigned the formatter created in this function.
+
+    Note that you could specify a stream created using open(filename, mode)
+    rather than passing the filename and mode in. However, it should be
+    remembered that StreamHandler does not close its stream (since it may be
+    using sys.stdout or sys.stderr), whereas FileHandler closes its stream
+    when the handler is closed.
+
+    .. versionchanged:: 3.2
+       Added the ``style`` parameter.
+
+    .. versionchanged:: 3.3
+       Added the ``handlers`` parameter. A ``ValueError`` is now thrown for
+       incompatible arguments (e.g. ``handlers`` specified together with
+       ``filename``/``filemode``, or ``filename``/``filemode`` specified
+       together with ``stream``, or ``handlers`` specified together with
+       ``stream``.
+    """
+    # Add thread safety in case someone mistakenly calls
+    # basicConfig() from multiple threads
+    logging._acquireLock()
+    try:
+        if len(logging.root.handlers) == 0:
+            handlers = kwargs.pop("handlers", None)
+            if handlers is None:
+                if "stream" in kwargs and "filename" in kwargs:
+                    raise ValueError("'stream' and 'filename' should not be "
+                                     "specified together")
+            else:
+                if "stream" in kwargs or "filename" in kwargs:
+                    raise ValueError("'stream' or 'filename' should not be "
+                                     "specified together with 'handlers'")
+            if handlers is None:
+                filename = kwargs.pop("filename", None)
+                mode = kwargs.pop("filemode", 'a')
+                if filename:
+                    h = logging.FileHandler(filename, mode)
+                else:
+                    stream = kwargs.pop("stream", None)
+                    h = logging.StreamHandler(stream)
+                handlers = [h]
+            dfs = kwargs.pop("datefmt", None)
+            style = kwargs.pop("style", '%')
+            if style not in _STYLES:
+                raise ValueError('Style must be one of: %s' % ','.join(
+                                 _STYLES.keys()))
+            fs = kwargs.pop("format", BASIC_FORMAT)
+            fmt = JsonFormatter(fs, dfs, style)
+            for h in handlers:
+                if h.formatter is None:
+                    h.setFormatter(fmt)
+                logging.root.addHandler(h)
+            level = kwargs.pop("level", None)
+            if level is not None:
+                logging.root.setLevel(level)
+            if kwargs:
+                keys = ', '.join(kwargs.keys())
+                raise ValueError('Unrecognised argument(s): %s' % keys)
+    finally:
+        logging._releaseLock()

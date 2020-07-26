@@ -1,25 +1,29 @@
-Table of Contents
-=================
-
-* [jsonformatter \-\- for python log json](#jsonformatter----for-python-log-json)
-  * [Installation](#installation)
-  * [Basic Usage](#basic-usage)
-    * [Case 1\. Use default config](#case-1-use-default-config)
-    * [Case 2\. config in python code](#case-2-config-in-python-code)
-    * [Case 3\. config from config file](#case-3-config-from-config-file)
-  * [More Usage](#more-usage)
-    * [Case 1\. output multiple attributes in one key](#case-1-output-multiple-attributes-in-one-key)
-    * [Case 2\. support json\.dumps all optional parameters](#case-2-support-jsondumps-all-optional-parameters)
-    * [Case 3\. support cumtom(add/replace) LogRecord  attribute](#case-3-support-cumtomaddreplace-logrecord--attribute)
-  * [LogRecord Attributes](#logrecord-attributes)
+- [jsonformatter -- for python log json](#jsonformatter----for-python-log-json)
+    - [Installation](#installation)
+    - [Basic Usage](#basic-usage)
+        - [Case 1. Initial root logger like `logging.basicConfig`](#case-1-initial-root-logger-like-loggingbasicconfig)
+        - [Case 2. Complete config in python code](#case-2-complete-config-in-python-code)
+        - [Case 3. Use config file](#case-3-use-config-file)
+        - [Case 4. In `Flask` project, add `LogRecord` attribute for auto output](#case-4-in-flask-project-add-logrecord-attribute-for-auto-output)
+        - [Case 5. In `Django` project, config `LOGGING`](#case-5-in-django-project-config-logging)
+    - [More Usage](#more-usage)
+        - [Case 1. Mix `extra` to output](#case-1-mix-extra-to-output)
+        - [Case 2. output multiple attributes in one key](#case-2-output-multiple-attributes-in-one-key)
+        - [Case 3. support `json.dumps` all optional parameters](#case-3-support-jsondumps-all-optional-parameters)
+        - [Case 4. Solve cumtom `LogRecord` attribute is not `JSON serializable`](#case-4-solve-cumtom-logrecord-attribute-is-not-json-serializable)
+    - [LogRecord Attributes](#logrecord-attributes)
 
 
 
 # jsonformatter -- for python log json
 
-**jsonformatter** is a formatter for python output json log,  you can easily output **LogStash** needed log format or other **custom** json format  and  you can easily **custom(add/replace)** `LogRecord` attribute.
+**jsonformatter** is a formatter for python output json log, e.g. output **LogStash** needed log.
 
-**Python 2.7** and **python 3** are supported from version 0.2.X,  if you are using a version lower than 0.2.X,  **python 3** is only supported.
+Easily **custom(add/replace)** `LogRecord` attribute, e.g. in `Flask` web project, add `username` attribute to `LogRecord`  for auto output username.
+
+
+
+**Python 2.7** and **python 3** are supported from version 0.2.X,  if you are using a version lower than 0.2.X,  Only **python 3** is supported.
 
 
 
@@ -43,44 +47,34 @@ $ python setup.py install
 
 ## Basic Usage
 
-### Case 1. Use default config
+### Case 1. Initial root logger like `logging.basicConfig`
+```python
+import logging
+
+from jsonformatter import basicConfig
+
+# default keyword parameter `format`: """{"levelname": "levelname", "name": "name", "message": "message"}"""
+basicConfig(level=logging.INFO)
+logging.info('hello, jsonformatter')
+```
+
+output:
+
+```shell
+{"levelname": "INFO", "name": "root", "message": "hello, jsonformatter"}
+```
+
+
+
+### Case 2. Complete config in python code
 
 ```python
 import logging
 
 from jsonformatter import JsonFormatter
 
-root = logging.getLogger()
-root.setLevel(logging.INFO)
-
-formatter = JsonFormatter()
-
-sh = logging.StreamHandler()
-sh.setFormatter(formatter)
-sh.setLevel(logging.INFO)
-
-root.addHandler(sh)
-
-root.info("test %s config", 'default')
-```
-
-output:
-
-```shell
-{"levelname": "INFO", "name": "root", "message": "test default config"}
-```
-
-
-
-### Case 2. config in python code
-
-```python3
-import logging
-
-from jsonformatter import JsonFormatter
-
-# `format` can be json, OrderedDict, dict.
-# If `format` is `dict` and python version<3.7.0, the output ordered is sorted keys, otherwise will same as define ordered.
+# `format` can be `json`, `OrderedDict`, `dict`.
+# If `format` is `dict` and python version < 3.7.0, the output order is sorted keys, otherwise will same as defined order.
 # key: string, can be whatever you like.
 # value: `LogRecord` attribute name.
 STRING_FORMAT = '''{
@@ -124,7 +118,7 @@ output:
 
 
 
-### Case 3. config from config file
+### Case 3. Use config file
 
 config file:
 ```shell
@@ -133,7 +127,7 @@ $ cat logger_config.ini
 keys=root
 
 [logger_root]
-level=DEBUG
+level=INFO
 handlers=infohandler
 
 
@@ -177,10 +171,172 @@ output:
 
 
 
+### Case 4. In `Flask` project, add `LogRecord` attribute for auto output
+
+flask_demo.py
+
+```python
+import datetime
+import json
+import logging
+import random
+from collections import OrderedDict
+
+from jsonformatter import JsonFormatter
+from flask import Flask, has_request_context, request, session
+from flask.logging import default_handler
+
+app = Flask(__name__)
+
+# the key will add/replace `LogRecord` attribute.
+# the value must be `callable` type and not support positional paramters, the returned value will be as the `LogRecord` attribute value.
+RECORD_CUSTOM_ATTRS = {
+    # no parameters
+    'url': lambda: request.url if has_request_context() else None,
+    'username': lambda: session['username'] if has_request_context() and ('username' in session) else None,
+    # Arbitrary keywords parameters
+    'status': lambda **record_attrs: 'failed' if record_attrs['levelname'] in ['ERROR', 'CRITICAL'] else 'success'
+}
+
+RECORD_CUSTOM_FORMAT = OrderedDict([
+    # custom record attributes start
+    ("Url", "url"),
+    ("Username", "username"),
+    ("Status", "status"),
+    # custom record attributes end
+    ("Name", "name"),
+    ("Levelno", "levelno"),
+    ("Levelname", "levelname"),
+    ("Pathname", "pathname"),
+    ("Filename", "filename"),
+    ("Module", "module"),
+    ("Lineno", "lineno"),
+    ("FuncName", "funcName"),
+    ("Created", "created"),
+    ("Asctime", "asctime"),
+    ("Msecs", "msecs"),
+    ("RelativeCreated", "relativeCreated"),
+    ("Thread", "thread"),
+    ("ThreadName", "threadName"),
+    ("Process", "process"),
+    ("Message", "message")
+])
+
+
+formatter = JsonFormatter(
+    RECORD_CUSTOM_FORMAT,
+    record_custom_attrs=RECORD_CUSTOM_ATTRS
+)
+
+default_handler.setFormatter(formatter)
+app.logger.warning('hello, jsonformatter')
+```
+
+output:
+
+```shell
+{"Url": null, "Username": null, "Status": "success", "Name": "flask_demo", "Levelno": 30, "Levelname": "WARNING", "Pathname": "flask_demo.py", "Filename": "flask_demo.py", "Module": "flask_demo", "Lineno": 54, "FuncName": "<module>", "Created": 1595781463.3557186, "Asctime": "2020-07-27 00:37:43,355", "Msecs": 355.71861267089844, "RelativeCreated": 858.7081432342529, "Thread": 15584, "ThreadName": "MainThread", "Process": 17560, "Message": "hello, jsonformatter"}
+```
+
+
+
+### Case 5. In `Django` project, config `LOGGING`
+
+settings.py
+
+```python
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'class': 'jsonformatter.JsonFormatter',
+            'format': OrderedDict([
+                ("Name", "name"),
+                ("Levelno", "levelno"),
+                ("Levelname", "levelname"),
+                ("Pathname", "pathname"),
+                ("Filename", "filename"),
+                ("Module", "module"),
+                ("Lineno", "lineno"),
+                ("FuncName", "funcName"),
+                ("Created", "created"),
+                ("Asctime", "asctime"),
+                ("Msecs", "msecs"),
+                ("RelativeCreated", "relativeCreated"),
+                ("Thread", "thread"),
+                ("ThreadName", "threadName"),
+                ("Process", "process"),
+                ("Message", "message")
+            ])
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'formatter': 'standard',
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False
+        },
+    }
+}
+```
+
+
+
 ## More Usage
 
-### Case 1. output multiple attributes in one key
-```python3
+### Case 1. Mix `extra` to output
+
+```python
+import logging
+
+from jsonformatter import JsonFormatter
+
+root = logging.getLogger()
+root.setLevel(logging.INFO)
+
+sh = logging.StreamHandler()
+formatter = JsonFormatter(
+    ensure_ascii=False, 
+    mix_extra=True,
+    mix_extra_position='tail' # optional: head, mix
+)
+sh.setFormatter(formatter)
+sh.setLevel(logging.INFO)
+root.addHandler(sh)
+
+root.info(
+    'test mix extra in fmt',
+    extra={
+        'extra1': 'extra content 1',
+        'extra2': 'extra content 2'
+    })
+root.info(
+    'test mix extra in fmt',
+    extra={
+        'extra3': 'extra content 3',
+        'extra4': 'extra content 4'
+    })
+```
+
+output:
+
+```shell
+{"levelname": "INFO", "name": "root", "message": "test mix extra in fmt", "extra1": "extra content 1", "extra2": "extra content 2"}
+{"levelname": "INFO", "name": "root", "message": "test mix extra in fmt", "extra3": "extra content 3", "extra4": "extra content 4"}
+```
+
+
+
+### Case 2. output multiple attributes in one key
+```python
 import logging
 
 from jsonformatter import JsonFormatter
@@ -207,9 +363,9 @@ root.info('test multi attributes in one key')
 
 
 
-### Case 2. support `json.dumps` all optional parameters
+### Case 3. support `json.dumps` all optional parameters
 
-```python3
+```python
 import logging
 
 from jsonformatter import JsonFormatter
@@ -251,9 +407,9 @@ root.info('test json optional paramter: 中文')
 
 
 
-### Case 3. support cumtom(add/replace) `LogRecord`  attribute
+### Case 4. Solve cumtom `LogRecord` attribute is not `JSON serializable`
 
-```python3
+```python
 import datetime
 import json
 import logging
@@ -263,10 +419,10 @@ from collections import OrderedDict
 from jsonformatter import JsonFormatter
 
 # the key will add/replace `LogRecord` attribute.
-# the value must be `callable` type and not support paramters, the returned value will be as the `LogRecord` attribute value.
+# the value must be `callable` type and not support positional paramters, the returned value will be as the `LogRecord` attribute value.
 RECORD_CUSTOM_ATTRS = {
     # `datetime.datetime` type is not JSON serializable.
-    # solve it in three ways.
+    # solve it in three ways, choose which you like.
     # 1. use `LogRecord` attribute `Format`: %(asctme)s.
     # 2. use `json.dumps` optional parameter `default`.
     # 3. use `json.dumps` optional parameter `cls`.

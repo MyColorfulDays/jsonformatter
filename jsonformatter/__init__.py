@@ -8,6 +8,9 @@ Email: yourname@email.com
 Github: https://github.com/yourname
 Description: jsonformatter.py
 """
-from .jsonformatter import JsonFormatter
+from .jsonformatter import JsonFormatter, basicConfig
 
-__all__ = ['JsonFormatter']
+__all__ = ['JsonFormatter', 'basicConfig']
+
+version = "0.3.0"
+version_info = (0, 3, 0)
