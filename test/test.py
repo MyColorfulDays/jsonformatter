@@ -405,6 +405,27 @@ class JsonFormatterTest(unittest.TestCase):
         root.info('test mix extra position is head',
                   extra={'extra': 'extra content'})
 
+    def test_mix_extra_multi_formatter(self):
+        root = logging.getLogger()
+        root.setLevel(logging.INFO)
+
+        fh = logging.FileHandler('jsonformatter.log')
+        formatter = JsonFormatter(
+            ensure_ascii=False, mix_extra=True, indent=4)
+        fh.setFormatter(formatter)
+        fh.setLevel(logging.INFO)
+        root.addHandler(fh)
+
+        sh = logging.StreamHandler()
+        formatter = JsonFormatter(
+            ensure_ascii=False, mix_extra=True, indent=4)
+        sh.setFormatter(formatter)
+        sh.setLevel(logging.INFO)
+        root.addHandler(sh)
+
+        root.info('test mix extra multi formatter',
+                  extra={'extra': 'extra content'})
+
     def test_mix_extra_position_is_mix(self):
         root = logging.getLogger()
         root.setLevel(logging.INFO)

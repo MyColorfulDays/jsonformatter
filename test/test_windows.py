@@ -153,7 +153,7 @@ class JsonFormatterTest(unittest.TestCase):
         sh.setLevel(logging.INFO)
 
         root.addHandler(sh)
-        root.info('test percent style unicode: %s', 'ÖÐÎÄ')
+        root.info('test percent style unicode: %s', 'ï¿½ï¿½ï¿½ï¿½')
 
     def test_format_style_unicode(self):
         root = logging.getLogger()
@@ -167,7 +167,7 @@ class JsonFormatterTest(unittest.TestCase):
         sh.setLevel(logging.INFO)
 
         root.addHandler(sh)
-        root.info('test format style unicode: %s', 'ÖÐÎÄ')
+        root.info('test format style unicode: %s', 'ï¿½ï¿½ï¿½ï¿½')
 
     def test_template_style_unicode(self):
         root = logging.getLogger()
@@ -181,7 +181,7 @@ class JsonFormatterTest(unittest.TestCase):
         sh.setLevel(logging.INFO)
 
         root.addHandler(sh)
-        root.info('test template style unicode: %s', 'ÖÐÎÄ')
+        root.info('test template style unicode: %s', 'ï¿½ï¿½ï¿½ï¿½')
 
     def test_dict_format(self):
         DICT_FORMAT = {
@@ -348,7 +348,7 @@ class JsonFormatterTest(unittest.TestCase):
 
         root.addHandler(sh)
 
-        root.info('test json dumps parameter `ensure_ascii` False: ÖÐÎÄ')
+        root.info('test json dumps parameter `ensure_ascii` False: ï¿½ï¿½ï¿½ï¿½')
 
     def test_file_config(self):
         fileConfig(os.path.join(os.path.dirname(
@@ -414,6 +414,27 @@ class JsonFormatterTest(unittest.TestCase):
         sh.setLevel(logging.INFO)
         root.addHandler(sh)
         root.info('test mix extra position is head',
+                  extra={'extra': 'extra content'})
+
+    def test_mix_extra_multi_formatter(self):
+        root = logging.getLogger()
+        root.setLevel(logging.INFO)
+
+        fh = logging.FileHandler('jsonformatter.log')
+        formatter = JsonFormatter(
+            ensure_ascii=False, mix_extra=True, indent=4)
+        fh.setFormatter(formatter)
+        fh.setLevel(logging.INFO)
+        root.addHandler(fh)
+
+        sh = logging.StreamHandler()
+        formatter = JsonFormatter(
+            ensure_ascii=False, mix_extra=True, indent=4)
+        sh.setFormatter(formatter)
+        sh.setLevel(logging.INFO)
+        root.addHandler(sh)
+
+        root.info('test mix extra multi formatter',
                   extra={'extra': 'extra content'})
 
     def test_mix_extra_position_is_mix(self):

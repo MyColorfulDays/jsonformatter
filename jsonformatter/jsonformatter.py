@@ -382,7 +382,7 @@ class JsonFormatter(logging.Formatter):
         record.asctime = self.formatTime(record, self.datefmt)
 
         # pop stored __extra start
-        extra = record.__dict__.pop('__extra', None)
+        extra = record.__dict__.pop('__extra', None) or record.__dict__.pop('_JsonFormatter__extra', None)
         if extra is None:
             # extra is dictionary
             extra = self.getRecordExtraAttrs(record)
