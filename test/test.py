@@ -3,25 +3,30 @@
 
 """
 File: jsonformatter.py
-Author: Me
-Email: yourname@email.com
-Github: https://github.com/yourname
+Author: MyColorfulDays
+Email: my_colorful_days@163.com
+Github: https://github.com/MyColorfulDays
 Description: jsonformatter.py
 """
+
 import datetime
 import logging
 import os
 import random
+import sys
 import unittest
 from collections import OrderedDict
-from logging.config import fileConfig
+# from logging.config import fileConfig
 
+# check `sys.path` to prevent import jsonformatter error start
+CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
+PREVIOUS_DIRECTORY = os.path.dirname(CURRENT_DIR)
+SYS_PATH_0_ABS = os.path.abspath(sys.path[0])
+if (PREVIOUS_DIRECTORY not in sys.path) and(PREVIOUS_DIRECTORY != SYS_PATH_0_ABS):
+    sys.path.insert(0, PREVIOUS_DIRECTORY)
+# check `sys.path` to prevent import jsonformatter error end
 
-if __file__ == 'test.py':
-    import sys
-    sys.path.insert(0, '..')
-
-from jsonformatter import JsonFormatter, basicConfig
+from jsonformatter import JsonFormatter, basicConfig, fileConfig
 
 
 class JsonFormatterTest(unittest.TestCase):
@@ -351,9 +356,28 @@ class JsonFormatterTest(unittest.TestCase):
         root.info('test json dumps parameter `ensure_ascii` False: 中文')
 
     def test_file_config(self):
-        fileConfig(os.path.join(os.path.dirname(
-            __file__), 'logger_config.ini'))
-        root = logging.getLogger('root')
+        def _new_custom_attribute_status(**record_attrs):
+            if record_attrs['levelname'] in ['ERROR', 'CRITICAL']:
+                return 'failed'
+            else:
+                return 'success'
+        RECORD_CUSTOM_ATTRS = {
+            'status': _new_custom_attribute_status,
+        }
+        fileConfig(
+            os.path.join(os.path.dirname(__file__), 'logger_config.ini'),
+            defaults={
+                'jsonformatter': {  # default kwargs of all `JsonFormatter` instances
+                    'record_custom_attrs': RECORD_CUSTOM_ATTRS,
+                    'mix_extra': True,
+                    'indent': 2
+                },
+                'formatter_form01': {  # default kwargs of `JsonFormatter` instance formatter_form01, this kwargs will overwrite
+                    'indent': 4
+                }
+            }
+        )
+        root = logging.getLogger()
         root.info('test file config')
 
     def test_multi_handlers(self):

@@ -3,32 +3,35 @@
 
 """
 File: jsonformatter.py
-Author: Me
-Email: yourname@email.com
-Github: https://github.com/yourname
+Author: MyColorfulDays
+Email: my_colorful_days@163.com
+Github: https://github.com/MyColorfulDays
 Description: jsonformatter.py
 """
+
 import inspect
 import json
 import logging
+import logging.config
 import sys
 import warnings
 from functools import wraps, partial
 from string import Template
 
+PYTHON_VERSION = sys.version_info
 # From python3.7, dict is in ordered,so do json package's load(s)/dump(s).
 # https://docs.python.org/3.7/library/stdtypes.html#dict
 # Changed in version 3.7: Dictionary order is guaranteed to be insertion order. This behavior was an implementation detail of CPython from 3.6.
-if sys.version_info >= (3, 7):
+if PYTHON_VERSION >= (3, 7):
     dictionary = dict
 else:
     from collections import OrderedDict
     dictionary = OrderedDict
 
-# compatible python2, python 3  no long type, start
-if sys.version_info >= (3, 0):
+# compatible python2, python 3 no long type, start
+if PYTHON_VERSION >= (3, 0):
     long = int
-# compatible python2, python 3  no long type, end
+# compatible python2, python 3 no long type, end
 
 
 class PercentStyle(object):
@@ -171,7 +174,7 @@ class JsonFormatter(logging.Formatter):
             return dictionary((k, fmt[k]) for k in sorted(fmt.keys()))
         else:
             raise TypeError(
-                '`%s` type is not supported, `fmt` must be `json`, `OrderedDcit` or `dict` type. ' % type(fmt))
+                '`%s` type `%s` is not supported, `fmt` must be `json`, `OrderedDcit` or `dict` type.' % (fmt, type(fmt)))
 
     def checkRecordCustomAttrs(self, record_custom_attrs):
         def _patch_no_params_func_accept_kwargs(func):
@@ -184,15 +187,13 @@ class JsonFormatter(logging.Formatter):
             if isinstance(record_custom_attrs, dict):
                 for attr, func in record_custom_attrs.items():
                     if not callable(func):
-                        raise TypeError('`%s` is not callable.' % func)
+                        raise TypeError('custom attribute `%s` value `%s` is not `callable`.' % (attr, func))
 
                     if inspect.isfunction(func):
                         argspec = getattr(inspect, 'getfullargspec',
                                           inspect.getargspec)(func)
                         if argspec.args:
-                            raise TypeError(
-                                "`%s` must no Positional Parameters." % func.__name__
-                            )
+                            raise TypeError("custom attribute `%s` value `%s` must no positional arguments." % (attr, func.__name__))
                         else:
                             if not (
                                 getattr(argspec, 'keywords', False) or
@@ -204,17 +205,17 @@ class JsonFormatter(logging.Formatter):
                     else:
                         if isinstance(func, partial):
                             warnings.warn(
-                                "`%s` is a partial function, please make sure no positional parameters in function signature." % (func), UserWarning)
+                                "custom attribute `%s` value `%s` is a partial function, please make sure no positional arguments in function signature." % (attr, func), UserWarning, stacklevel=3)
                         elif hasattr(func, '__call__'):
                             warnings.warn(
-                                "`%s` is a callable instance, please make sure no positional parameters in method signature." % (func), UserWarning)
+                                "custom attribute `%s` value `%s` is a callable instance, please make sure no positional arguments in method signature." % (attr, func), UserWarning, stacklevel=3)
                         else:
                             warnings.warn(
-                                "`%s` is a unknown callable type, please make sure no positional parameters in function/method signature." % (func), UserWarning)
+                                "custom attribute `%s` value `%s` is an unknown callable type, please make sure no positional arguments in function/method signature." % (attr, func), UserWarning, stacklevel=3)
             else:
                 raise TypeError('`record_custom_attrs` must be `dict` type.')
         else:
-            return
+            return True
 
     def __init__(self, fmt=BASIC_FORMAT, datefmt=None, style='%', record_custom_attrs=None, mix_extra=False, mix_extra_position='tail', skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=None, indent=None, separators=None, encoding='utf-8', default=None, sort_keys=False, **kw):
         """
@@ -281,7 +282,7 @@ class JsonFormatter(logging.Formatter):
             raise ValueError('`mix_extra_position` must be one of: %s' % ','.join(
                              _MIX_EXTRA_ORDER))
         # compatible python2 start
-        if sys.version_info < (3, 0):
+        if PYTHON_VERSION < (3, 0):
             kw.update(encoding=encoding)
             logging.Formatter.__init__(
                 self, fmt='', datefmt=datefmt)
@@ -290,7 +291,9 @@ class JsonFormatter(logging.Formatter):
                 self, fmt='', datefmt=datefmt, style=style)
         # compatible python2 end
 
-        self.json_fmt = self.parseFmt(fmt)
+        # compatible dictConfig pass format keyword argument start
+        self.json_fmt = self.parseFmt(kw.pop('format', fmt))
+        # compatible dictConfig pass format keyword argument end
         self.record_custom_attrs = record_custom_attrs
         self._style = _STYLES[style](self.json_fmt)
         self._style._fmt = ''
@@ -348,7 +351,7 @@ class JsonFormatter(logging.Formatter):
             for k in record.__dict__
             if k not in _LogRecordDefaultAttributes
         }
-        if sys.version_info >= (3, 7):
+        if PYTHON_VERSION >= (3, 7):
             return extras
         else:
             return dictionary((k, extras[k]) for k in sorted(extras.keys()))
@@ -372,6 +375,9 @@ class JsonFormatter(logging.Formatter):
                 result[k] = getattr(record, v, None)
             # this is for convert to string
             else:
+                # TODO: if formatter contains a custom attribute and
+                # `record_custom_attrs` not pass the custom attribute
+                # implement, the value is original string.
                 self._style._fmt = v
                 result[k] = self.formatMessage(record)
 
@@ -384,15 +390,14 @@ class JsonFormatter(logging.Formatter):
         # pop stored __extra start
         extra = record.__dict__.pop('__extra', None) or record.__dict__.pop('_JsonFormatter__extra', None)
         if extra is None:
-            # extra is dictionary
-            extra = self.getRecordExtraAttrs(record)
+            extra = self.getRecordExtraAttrs(record)  # extra is dictionary
         # pop stored __extra end
 
         if self.record_custom_attrs:
             self.setRecordCustomAttrs(record)
 
         # compatible python2 start
-        if sys.version_info < (3, 0):
+        if PYTHON_VERSION < (3, 0):
             for k, v in record.__dict__.items():
                 if isinstance(v, str):
                     record.__dict__.update({k: v.decode(self.encoding)})
@@ -529,5 +534,67 @@ def basicConfig(**kwargs):
             if kwargs:
                 keys = ', '.join(kwargs.keys())
                 raise ValueError('Unrecognised argument(s): %s' % keys)
+    finally:
+        logging._releaseLock()
+
+
+def fileConfig(fname, defaults=None, disable_existing_loggers=True):
+    """
+    Read the logging configuration from a ConfigParser-format file.
+
+    This can be called several times from an application, allowing an end user
+    the ability to select from various pre-canned configurations (if the
+    developer provides a mechanism to present the choices and load the chosen
+    configuration).
+    """
+    if PYTHON_VERSION >= (3, 0):
+        import configparser
+
+        if isinstance(fname, configparser.RawConfigParser):
+            cp = fname
+        else:
+            cp = configparser.ConfigParser(defaults)
+            if hasattr(fname, 'readline'):
+                cp.read_file(fname)
+            else:
+                cp.read(fname)
+    else:
+        import ConfigParser
+
+        cp = ConfigParser.ConfigParser(defaults)
+        if hasattr(fname, 'readline'):
+            cp.readfp(fname)
+        else:
+            cp.read(fname)
+
+    formatters = logging.config._create_formatters(cp)
+
+    for formatter_name in formatters:
+        try:
+            if isinstance(formatters[formatter_name], JsonFormatter):
+                sectname = "formatter_%s" % formatter_name
+                opts = cp.options(sectname)
+                formatter_kwargs = {}
+                formatter_kwargs.update(**cp.defaults().get('all_jsonformatter_instances', {}))
+                formatter_kwargs.update(**cp.defaults().get(sectname, {}))
+                # compatible python2 start
+                formatter_kwargs['fmt'] = cp.get(sectname, 'format', raw=True) if 'format' in opts else formatter_kwargs.get('fmt', BASIC_FORMAT)
+                formatter_kwargs['datefmt'] = cp.get(sectname, 'datefmt', raw=True) if 'datefmt' in opts else formatter_kwargs.get('datefmt', None)
+                formatter_kwargs['style'] = cp.get(sectname, 'style', raw=True) if 'style' in opts else formatter_kwargs.get('style', '%')
+                # compatible python2 end
+                formatter = formatters[formatter_name].__class__(**formatter_kwargs)
+                formatters[formatter_name] = formatter
+        except Exception as e:
+            import traceback
+            warnings.warn(traceback.format_exc(), UserWarning)
+
+    # critical section
+    logging._acquireLock()
+    try:
+        logging._handlers.clear()
+        del logging._handlerList[:]
+        # Handlers add themselves to logging._handlers
+        handlers = logging.config._install_handlers(cp, formatters)
+        logging.config._install_loggers(cp, handlers, disable_existing_loggers)
     finally:
         logging._releaseLock()

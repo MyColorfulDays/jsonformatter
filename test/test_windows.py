@@ -3,23 +3,28 @@
 
 """
 File: jsonformatter.py
-Author: Me
-Email: yourname@email.com
-Github: https://github.com/yourname
+Author: MyColorfulDays
+Email: my_colorful_days@163.com
+Github: https://github.com/MyColorfulDays
 Description: jsonformatter.py
 """
 import datetime
 import logging
 import os
 import random
+import sys
 import unittest
 from collections import OrderedDict
 from logging.config import fileConfig
 
 
-if __file__ == 'test_windows.py':
-    import sys
-    sys.path.insert(0, '..')
+# check `sys.path` to prevent import jsonformatter error start
+CURRENT_DIR = os.path.abspath(os.path.dirname(__file__))
+PREVIOUS_DIRECTORY = os.path.dirname(CURRENT_DIR)
+SYS_PATH_0_ABS = os.path.abspath(sys.path[0])
+if (PREVIOUS_DIRECTORY not in sys.path) and(PREVIOUS_DIRECTORY != SYS_PATH_0_ABS):
+    sys.path.insert(0, PREVIOUS_DIRECTORY)
+# check `sys.path` to prevent import jsonformatter error end
 
 from jsonformatter import JsonFormatter, basicConfig
 
@@ -153,7 +158,7 @@ class JsonFormatterTest(unittest.TestCase):
         sh.setLevel(logging.INFO)
 
         root.addHandler(sh)
-        root.info('test percent style unicode: %s', 'ï¿½ï¿½ï¿½ï¿½')
+        root.info('test percent style unicode: %s', 'ÖÐÎÄ')
 
     def test_format_style_unicode(self):
         root = logging.getLogger()
@@ -167,7 +172,7 @@ class JsonFormatterTest(unittest.TestCase):
         sh.setLevel(logging.INFO)
 
         root.addHandler(sh)
-        root.info('test format style unicode: %s', 'ï¿½ï¿½ï¿½ï¿½')
+        root.info('test format style unicode: %s', 'ÖÐÎÄ')
 
     def test_template_style_unicode(self):
         root = logging.getLogger()
@@ -181,7 +186,7 @@ class JsonFormatterTest(unittest.TestCase):
         sh.setLevel(logging.INFO)
 
         root.addHandler(sh)
-        root.info('test template style unicode: %s', 'ï¿½ï¿½ï¿½ï¿½')
+        root.info('test template style unicode: %s', 'ÖÐÎÄ')
 
     def test_dict_format(self):
         DICT_FORMAT = {
@@ -348,12 +353,25 @@ class JsonFormatterTest(unittest.TestCase):
 
         root.addHandler(sh)
 
-        root.info('test json dumps parameter `ensure_ascii` False: ï¿½ï¿½ï¿½ï¿½')
+        root.info('test json dumps parameter `ensure_ascii` False: ÖÐÎÄ')
 
     def test_file_config(self):
-        fileConfig(os.path.join(os.path.dirname(
-            __file__), 'logger_config.ini'))
-        root = logging.getLogger('root')
+        def _new_custom_attribute_status(**record_attrs):
+            if record_attrs['levelname'] in ['ERROR', 'CRITICAL']:
+                return 'failed'
+            else:
+                return 'success'
+        RECORD_CUSTOM_ATTRS = {'status': _new_custom_attribute_status}
+        fileConfig(
+            os.path.join(os.path.dirname(__file__), 'logger_config.ini'),
+            defaults={
+                'jsonformatter_defaults': {
+                    'record_custom_attrs': RECORD_CUSTOM_ATTRS,
+                    'mix_extra': True
+                }
+            }
+        )
+        root = logging.getLogger()
         root.info('test file config')
 
     def test_multi_handlers(self):
