@@ -123,6 +123,14 @@ _MIX_EXTRA_ORDER = {
 }
 
 
+class DefaultJSONEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, (dict, list, tuple, str, int, long, float, bool, type(None))):
+            return json.JSONEncoder.default(self, o)
+        else:
+            return str(o)
+
+
 class JsonFormatter(logging.Formatter):
     """
     Formatter instances are used to convert a LogRecord to text.
@@ -229,7 +237,7 @@ class JsonFormatter(logging.Formatter):
         else:
             return True
 
-    def __init__(self, fmt=BASIC_FORMAT, datefmt=None, style='%', record_custom_attrs=None, mix_extra=False, mix_extra_position='tail', skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=None, indent=None, separators=None, encoding='utf-8', default=None, sort_keys=False, **kw):
+    def __init__(self, fmt=BASIC_FORMAT, datefmt=None, style='%', record_custom_attrs=None, mix_extra=False, mix_extra_position='tail', skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=DefaultJSONEncoder, indent=None, separators=None, encoding='utf-8', default=None, sort_keys=False, **kw):
         """
         If ``style`` not in ``['%', '{', '$']``, a ``ValueError`` will be raised.
 
@@ -388,11 +396,14 @@ class JsonFormatter(logging.Formatter):
                 result[k] = getattr(record, v, None)
             # this is for convert to string
             else:
-                # TODO: if formatter contains a custom attribute and
-                # `record_custom_attrs` not pass the custom attribute
-                # implement, the value is original string.
-                self._style._fmt = v
-                result[k] = self.formatMessage(record)
+                if isinstance(v, str):
+                    # TODO: if formatter contains a custom attribute and
+                    # `record_custom_attrs` not pass the custom attribute
+                    # implement, the value is original string.
+                    self._style._fmt = v
+                    result[k] = self.formatMessage(record)
+                else:
+                    result[k] = v
 
         result = DICTIONARY()
 
