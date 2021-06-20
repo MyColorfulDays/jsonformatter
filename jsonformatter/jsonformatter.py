@@ -225,13 +225,13 @@ class JsonFormatter(logging.Formatter):
                     else:
                         if isinstance(func, partial):
                             warnings.warn(
-                                "custom attribute `%s` value `%s` is a partial function, please make sure no positional arguments in function signature." % (attr, func), UserWarning, stacklevel=3)
+                                "Custom attribute `%s` value `%s` is a partial function, please make sure no positional arguments in function signature. Here is your code:" % (attr, func), UserWarning, stacklevel=3)
                         elif hasattr(func, '__call__'):
                             warnings.warn(
-                                "custom attribute `%s` value `%s` is a callable instance, please make sure no positional arguments in method signature." % (attr, func), UserWarning, stacklevel=3)
+                                "Custom attribute `%s` value `%s` is a callable instance, please make sure no positional arguments in method signature. Here is your code:" % (attr, func), UserWarning, stacklevel=3)
                         else:
                             warnings.warn(
-                                "custom attribute `%s` value `%s` is an unknown callable type, please make sure no positional arguments in function/method signature." % (attr, func), UserWarning, stacklevel=3)
+                                "Custom attribute `%s` value `%s` is an unknown callable type, please make sure no positional arguments in function/method signature. Here is your code:" % (attr, func), UserWarning, stacklevel=3)
             else:
                 raise TypeError('`record_custom_attrs` must be `dict` type.')
         else:
