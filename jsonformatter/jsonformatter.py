@@ -123,7 +123,7 @@ _MIX_EXTRA_ORDER = {
 }
 
 
-class DefaultJSONEncoder(json.JSONEncoder):
+class JsonFormatterDefaultJSONEncoder(json.JSONEncoder):
     def default(self, o):
         if isinstance(o, (dict, list, tuple, str, int, long, float, bool, type(None))):
             return json.JSONEncoder.default(self, o)
@@ -187,7 +187,7 @@ class JsonFormatter(logging.Formatter):
             if isinstance(fmt, dict):
                 if not isinstance(fmt, DICTIONARY):
                     warnings.warn(
-                        "Current python version is lower than 3.7.0, the key's order of dict may be different with definition, please use `OrderedDict` replace.", UserWarning)
+                        "Current python version is lower than 3.7.0, the key's order of log may be different with definition, please use `OrderedDict` replace `fmt/format` argument when instantiation `JsonFormatter` in your code:", UserWarning, stacklevel=3)
                     fmt = DICTIONARY((k, fmt[k]) for k in sorted(fmt.keys()))
 
                 _set_callable_value_to_record_custom_attrs()
@@ -237,7 +237,7 @@ class JsonFormatter(logging.Formatter):
         else:
             return True
 
-    def __init__(self, fmt=BASIC_FORMAT, datefmt=None, style='%', record_custom_attrs=None, mix_extra=False, mix_extra_position='tail', skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=DefaultJSONEncoder, indent=None, separators=None, encoding='utf-8', default=None, sort_keys=False, **kw):
+    def __init__(self, fmt=BASIC_FORMAT, datefmt=None, style='%', record_custom_attrs=None, mix_extra=False, mix_extra_position='tail', skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=JsonFormatterDefaultJSONEncoder, indent=None, separators=None, encoding='utf-8', default=None, sort_keys=False, **kw):
         """
         If ``style`` not in ``['%', '{', '$']``, a ``ValueError`` will be raised.
 
@@ -292,7 +292,7 @@ class JsonFormatter(logging.Formatter):
 
         To use a custom ``JSONEncoder`` subclass (e.g. one that overrides the
         ``.default()`` method to serialize additional types), specify it with
-        the ``cls`` kwarg; otherwise ``JSONEncoder`` is used.
+        the ``cls`` kwarg; otherwise ``JsonFormatterDefaultJSONEncoder`` is used.
 
         """
         if style not in _STYLES:
@@ -321,7 +321,6 @@ class JsonFormatter(logging.Formatter):
         self._style._fmt = ''
         self.mix_extra = mix_extra
         self.mix_extra_position = mix_extra_position
-
 
         # support `json.dumps` parameters start
         self.skipkeys = skipkeys
