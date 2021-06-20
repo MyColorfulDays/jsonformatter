@@ -16,7 +16,6 @@ If you like this package, welcome to star⭐ it :-)
 <!-- TOC -->
 
 - [jsonformatter](#jsonformatter)
-    - [Do you want join and help me](#do-you-want-join-and-help-me)
     - [Installation](#installation)
     - [Basic Usage](#basic-usage)
         - [Case 1. Initial root logger like `logging.basicConfig`](#case-1-initial-root-logger-like-loggingbasicconfig)
@@ -34,7 +33,6 @@ If you like this package, welcome to star⭐ it :-)
         - [Case 3. In `Tornado`](#case-3-in-tornado)
         - [Case4. In `Celery`](#case4-in-celery)
         - [Case5. In `requests`](#case5-in-requests)
-        - [CaseN. Join me for more package](#casen-join-me-for-more-package)
     - [FAQ](#faq)
         - [How to solve `Object of type '*' is not JSON serializable`](#how-to-solve-object-of-type--is-not-json-serializable)
         - [Why nested type  `dict`, `list`, `tuple`  be converted to string](#why-nested-type--dict-list-tuple--be-converted-to-string)
@@ -44,12 +42,6 @@ If you like this package, welcome to star⭐ it :-)
     - [LogRecord Attributes](#logrecord-attributes)
 
 <!-- /TOC -->
-
-## Do you want join and help me
-
-I want most famous packages are out of the box with jsonformatter, e.g. `JsonFormat.framework_or_package_name.wrapper(app_or_package)`, the `app` can be framework application instance or python package. 
-
-The work is a little difficult and heavy and the next version `0.4.X` is delay too long. So, if you want work with me or have any suggestion, e.g. add wrapper as plugin in same namespace, welcome to new issue or contact me with email.
 
 ## Installation
 
@@ -104,8 +96,8 @@ import logging
 
 from jsonformatter import JsonFormatter
 
-# The `format` can be `json`, `OrderedDict`, `dict`.
-# If `format` is `dict` and python version < 3.7.0, the output order is sorted keys, otherwise consistent with defined order.
+# The `fmt/format` argument of `JsonFormatter` can be `json`, `OrderedDict`, `dict`.
+# If the argument type is `dict` and python version < 3.7.0, the output order is sorted keys, otherwise consistent with defined order.
 # key: string, whatever you like.
 # value: string, `LogRecord` attribute name.
 STRING_FORMAT = '''{
@@ -149,7 +141,43 @@ output:
 
 ### Case 3. Custom(add/replace) `LogRecord` attribute
 
-test_custom_attribute.py
+1. Recommend for the version equal or upper than 0.4.x
+
+test_custom_attribute_v04.py
+
+```python
+import datetime
+import logging
+
+from jsonformatter import JsonFormatter
+
+# key: string
+# value: object, `LogRecord` attribute name(the keys of `extra` are `LogRecord` attribute too) or other types.
+# If the value is `callable` type, only support no positional arguments or arbitrary keyword arguments.
+DICT_FORMAT = {
+    "app":             "app",
+    "version":         1.0,
+    "asctime":         lambda: datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],  # no positional arguments, replace `LogRecord.asctime`
+    "status":          lambda **record_attrs: 'failed' if record_attrs['levelname'] in ['ERROR', 'CRITICAL'] else 'success',  # arbitrary keyword arguments, the key `status` will be added to `LogRecord` as the attribute name 
+    "message":         "message"
+}
+
+
+formatter = JsonFormatter(DICT_FORMAT)
+sh = logging.StreamHandler()
+sh.setFormatter(formatter)
+sh.setLevel(logging.INFO)
+root = logging.getLogger()
+root.setLevel(logging.INFO)
+root.addHandler(sh)
+
+root.info("Hello, custom %s", 'jsonformatter')
+
+```
+
+2. Not recommended, compatible with version lower than 0.4.X, 
+
+test_custom_attribute_lower_v04.py
 
 ```python
 import datetime
@@ -162,19 +190,22 @@ from jsonformatter import JsonFormatter
 # The `callable` type returned value will be as the `LogRecord` attribute value.
 # If the returned object is not JSON serializable, see "How to solve `Object of type '*' is not JSON serializable`".
 RECORD_CUSTOM_ATTRS = {
+    "version": lambda: 1.0,
     # Replace attribute `asctime`, the value is a lambda without argument
     'asctime': lambda: datetime.datetime.today().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
     # Add attribute `status`, the value is a lambda with arbitrary keyword arguments.
     'status': lambda **record_attrs: 'failed' if record_attrs['levelname'] in ['ERROR', 'CRITICAL'] else 'success',
-
 }
 
+# key: string
+# value: string
 # The custom attribute `app` not in `RECORD_CUSTOM_ATTRS`, it will stay the same.
 STRING_FORMAT = '''{
-    "App":             "app",
-    "Asctime":         "asctime",
-    "Status":          "status",
-    "Message":         "message"
+    "app":             "app",
+    "version":         "version",
+    "asctime":         "asctime",
+    "status":          "status",
+    "message":         "message"
 }'''
 
 
@@ -189,7 +220,7 @@ root = logging.getLogger()
 root.setLevel(logging.INFO)
 root.addHandler(sh)
 
-root.info("hello, custom %s", 'jsonformatter')
+root.info("Hello, custom %s", 'jsonformatter')
 
 ```
 
@@ -201,7 +232,7 @@ root.info("hello, custom %s", 'jsonformatter')
 
 ### Case 4. Using `logging.config.fileConfig` or  `jsonformatter.fileConfig`
 
-Because the `logging.config.fileConfig` only support three formatter keyword arguments `class`, `datefmt`, `format`,  if you want use the other keyword arguments, you should use `jsonformatter.fileConfig` and pass the other keyword arguments in python code.
+Because the `logging.config.fileConfig` only support three formatter keyword arguments `class`, `datefmt`, `format`,  if you want pass the other keyword arguments, you should use `jsonformatter.fileConfig` and pass the other keyword arguments in python code.
 
 logger_config.ini:
 ```shell
@@ -219,13 +250,13 @@ keys=console_handler, file_handler
 [handler_console_handler]
 class=StreamHandler
 level=INFO
-formatter=form01
+formatter=formatter_console_formatter
 args=(sys.stdout,)
 
 [handler_file_handler]
 class=FileHandler
 level=INFO
-formatter=form01
+formatter=formatter_file_formatter
 args=('jsonformatter.log', 'a')
 
 ###############################################
@@ -253,20 +284,19 @@ from jsonformatter import fileConfig
 fileConfig(
 	os.path.join(os.path.dirname(__file__), 'logger_config.ini'),
 	defaults={
-		# `formatter_form01` will use these default keyword arguments, config file duplicate keyword arguments will overwrite defaults.
-		'formatter_form01': {
-			'record_custom_attrs': {
-				'app': lambda: 'jsonformatter',
-				'status': lambda **record_attrs: 'failed' if record_attrs['levelname'] in ['ERROR', 'CRITICAL'] else 'failed'
-			}
-		},
-		# all `JsonFormatter` instances will use these default keyword arguments, 'formatter_form01' duplicate keyword arguments will overwrite these.
-		'jsonformatter': {
+        # all `JsonFormatter` instances will use these default keyword arguments, 'formatter_file_formatter' duplicate keyword arguments will overwrite these.
+        'jsonformatter': {
 			'datefmt':'%Y-%m-%d %H-%M-%S.%f',
 			'record_custom_attrs': {
 				'app': lambda: 'jsonformatter',
 				'status': lambda **record_attrs: 'failed' if record_attrs['levelname'] in ['ERROR', 'CRITICAL'] else 'failed'
-			}
+			},
+			'indent': 4
+		},
+		# `formatter_file_formatter`
+		'formatter_file_formatter': {
+			'record_custom_attrs': {
+			'indent': None  #  duplicate keyword arguments, overwrite.
 		},
 	})
 root = logging.getLogger()
@@ -296,7 +326,7 @@ DICT_CONFIG = {
     'formatters': {
         'console_jsonformatter': {
             '()': 'jsonformatter.JsonFormatter', # https://docs.python.org/3/library/logging.config.html#user-defined-objects
-            'format': """{
+            'format': {
                 "Name": "name",
                 "Levelno": "levelno",
                 "Levelname": "levelname",
@@ -313,10 +343,7 @@ DICT_CONFIG = {
                 "ThreadName": "threadName",
                 "Process": "process",
                 "Message": "message",
-                "status": "status"
-            }""",
-            'record_custom_attrs': {
-                'status': lambda **record_attrs: 'failed' if record_attrs['levelname'] in ['ERROR', 'CRITICAL'] else 'success'
+                "status": lambda **record_attrs: 'failed' if record_attrs['levelname'] in ['ERROR', 'CRITICAL'] else 'success'
             },
             'mix_extra': True
         },
@@ -514,39 +541,27 @@ from jsonformatter import JsonFormatter
 from flask import Flask, has_request_context, request, session, g, jsonify
 from flask.logging import default_handler
 
+
 app = Flask(__name__)
 
-RECORD_CUSTOM_ATTRS = {
-    # no argument
-    'url': lambda: request.url if has_request_context() else None,
-    'method': lambda: request.method if has_request_context() else None,
-    'user_id': lambda: session['user_id'] if has_request_context() and ('user_id' in session) else None,
-    'request_id': lambda: g.request_id if has_request_context() else None,
-    # arbitrary keyword arguments
-    'type': lambda **record_attrs: record_attrs.get('type', 'bussiness'),
-    'duration': lambda **record_attrs: record_attrs.get('duration', None),
-    'exc_type': lambda: str(sys.exc_info()[0]) if sys.exc_info()[0] else None,
-}
 
 RECORD_CUSTOM_FORMAT = OrderedDict([
     ("log_time", "asctime"),
-    ("url", "url"),
+    ("url", lambda: request.url if has_request_context() else None),
     ("method", "method"),
-    ("user_id", "user_id"),
-    ("request_id", "request_id"),
-    ("type", "type"),
+    ("user_id", lambda: session['user_id'] if has_request_context() and ('user_id' in session) else None),
+    ("request_id", lambda: g.request_id if has_request_context() else None),
+    ("type", lambda **record_attrs: record_attrs.get('type', 'bussiness')),
     ("logger", "name"),
     ("level", "levelname"),
-    ("exc_type", "exc_type"),
+    ("exc_type", lambda: str(sys.exc_info()[0]) if sys.exc_info()[0] else None),
     ("file", "%(filename)s:%(lineno)s"),
     ("message", "message"),
-    ("duration", "duration"),
+    ("duration", lambda **record_attrs: record_attrs.get('duration', None)),
 ])
 
-formatter = JsonFormatter(
-    RECORD_CUSTOM_FORMAT,
-    record_custom_attrs=RECORD_CUSTOM_ATTRS
-)
+
+formatter = JsonFormatter(RECORD_CUSTOM_FORMAT)
 default_handler.setFormatter(formatter)
 default_handler.setLevel(logging.INFO)
 app.logger.setLevel(logging.INFO)
@@ -627,6 +642,7 @@ def index():
 def error():
     raise Exception('uncaught exception')
 
+
 if __name__ == '__main__':
     # remove develop server log
     werkzeug_logger = logging.getLogger('werkzeug')
@@ -659,8 +675,6 @@ failed output:
 
 
 
-
-
 ### Case 2. In `Django`
 
 settings.py
@@ -689,7 +703,8 @@ LOGGING = {
                 ("ThreadName", "threadName"),
                 ("Process", "process"),
                 ("Message", "message")
-            ])
+            ]),
+            "mix_extra": True
         },
     },
     'handlers': {
@@ -768,21 +783,15 @@ formatter = JsonFormatter(
         ("environment", CURRENT_ENV_SETTINGS['environment']),
         ("debug", str(CURRENT_ENV_SETTINGS['debug'])),
         ("service", CURRENT_ENV_SETTINGS['name']),
-        ("url", "url"),
-        ("method", "method"),
+        ("method", lambda: (REQUEST_CONTEXT.get({})).get('method', None)),
+        ("url", lambda: (REQUEST_CONTEXT.get({})).get('url', None)),
         ("uid", "uid"),
         ("logger", "name"),
         ("level", "levelname"),
-        ("trace_id", "trace_id"),
+        ("trace_id", lambda: (REQUEST_CONTEXT.get({})).get('trace_id', None)),
         ("module", "%(module)s.py:%(lineno)s"),
         ("message", "message"),
     ]),
-    record_custom_attrs={
-        'trace_id': lambda: (REQUEST_CONTEXT.get({})).get('trace_id', None),
-        'url': lambda: (REQUEST_CONTEXT.get({})).get('url', None),
-        'method': lambda: (REQUEST_CONTEXT.get({})).get('method', None),
-        'uid': lambda: (REQUEST_CONTEXT.get({})).get('uid', None),
-    },
     mix_extra=True
 )
 sh = logging.StreamHandler()
@@ -863,8 +872,7 @@ class BaseHandler(tornado.web.RequestHandler):
         })
 
     def write_error(self, status_code, **kwargs):
-        """process uncaught exception.
-        """
+        """process uncaught exception."""
         error_msg = ''.join(traceback.format_exception(*kwargs['exc_info']))
         # logging.error('traceback parameters: %s' % self.request.arguments)
         self.failed(error_msg, status_code)
@@ -951,14 +959,15 @@ TODO
 
 
 
-### CaseN. Join me for more package
-
-
-
 ## FAQ
 ### How to solve `Object of type '*' is not JSON serializable`
 
-1. using `LogRecord` attribute `Format`: `%(attribute)s/d/f`.
+1. Recommend upgrade `jsonformatter` to version version 0.4.X
+```shell
+$ pip install jsonformatter --upgrade
+```
+
+2. Or using `LogRecord` attribute `Format`: `%(attribute)s/d/f`.
 
 ```python
 import datetime
@@ -973,7 +982,7 @@ RECORD_CUSTOM_ATTRS = {
     'now': lambda: datetime.datetime.today() #  Object of type 'datetime' is not JSON serializable
 }
 RECORD_CUSTOM_FORMAT = OrderedDict([
-    ("Now",     "%(now)s"), #  using format solve raise exception: Object of type 'datetime' is not JSON serializable.
+    ("Now",     "%(now)s"), #  using format solve `Object of type 'datetime' is not JSON serializable`.
     ("Message", "message")
 ])
 formatter = JsonFormatter(RECORD_CUSTOM_FORMAT, record_custom_attrs=RECORD_CUSTOM_ATTRS)
@@ -985,7 +994,7 @@ root.addHandler(sh)
 root.info("Solving 'datetime' is not JSON serializable`")
 ```
 
-2. using `json.dumps` optional keyword argument `cls`
+3. Or using `json.dumps` optional keyword argument `cls`
 
 ```python
 import datetime
@@ -1028,7 +1037,7 @@ root.addHandler(sh)
 root.info("Solving 'datetime' is not JSON serializable`")
 ```
 
-3. using `json.dumps` optional keyword argument `default`
+4. Or using `json.dumps` optional keyword argument `default`
 
 ```python
 import datetime
@@ -1070,11 +1079,23 @@ root.addHandler(sh)
 root.info("Solving 'datetime' is not JSON serializable`")
 ```
 
+
+
 ### Why nested type  `dict`, `list`, `tuple`  be converted to string
 
 https://github.com/MyColorfulDays/jsonformatter/issues/8#issuecomment-756900220
 
+
+
 ### How to output nested type `dict`, `list`, `tuple` without quote
+
+1. Recommend upgrade `jsonformatter` to version 0.4.X or upper.
+
+```shell
+$ pip install jsonformatter --upgrade
+```
+
+2. If you are still using the version lower than 0.4.X, using `LogRecord.msg`  attribute.
 
 https://github.com/MyColorfulDays/jsonformatter/issues/8#issuecomment-757339770
 
@@ -1098,9 +1119,11 @@ sh.setLevel(logging.INFO)
 sh.setFormatter(formatter)
 root = logger.getLogger()
 root.addHandler(sh)
-root.info({'hello': 'world'})
+root.info({'Hello': {'world': ['.']}})
 
 ```
+
+
 
 ### Why log output multiple times
 
@@ -1115,7 +1138,7 @@ https://github.com/MyColorfulDays/jsonformatter/issues/5#issuecomment-829355938
 
 
 
-## LogRecord Attributes 
+## LogRecord Attributes
 
 Offical url: https://docs.python.org/3/library/logging.html#logrecord-attributes
 
