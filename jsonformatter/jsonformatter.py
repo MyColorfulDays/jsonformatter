@@ -22,11 +22,12 @@ PYTHON_VERSION = sys.version_info
 # From python3.7, dict is in ordered,so do json package's load(s)/dump(s).
 # https://docs.python.org/3.7/library/stdtypes.html#dict
 # Changed in version 3.7: Dictionary order is guaranteed to be insertion order. This behavior was an implementation detail of CPython from 3.6.
+DICTIONARY = None
 if PYTHON_VERSION >= (3, 7):
-    dictionary = dict
+    DICTIONARY = dict
 else:
     from collections import OrderedDict
-    dictionary = OrderedDict
+    DICTIONARY = OrderedDict
 
 # compatible python2, python 3 no long type, start
 if PYTHON_VERSION >= (3, 0):
@@ -40,6 +41,7 @@ class PercentStyle(object):
     asctime_search = '%(asctime)'
 
     def __init__(self, fmt):
+        # `self._fmt` value will be resetted in `JsonFormatter.format`, so in here, set value `''`
         self._fmt = ''
 
     def usesTime(self):
@@ -77,7 +79,7 @@ class StringTemplateStyle(PercentStyle):
         return self._tpl[self._fmt].substitute(**record.__dict__)
 
 
-BASIC_FORMAT = dictionary([
+BASIC_FORMAT = DICTIONARY([
     ('levelname', 'levelname'),
     ('name', 'name'),
     ('message', 'message')
@@ -163,18 +165,28 @@ class JsonFormatter(logging.Formatter):
                         the record is emitted
     """
 
+
     def parseFmt(self, fmt):
+        def _set_callable_value_to_record_custom_attrs():
+            for k, v in fmt.items():
+                if callable(v):
+                    fmt[k] = k
+                    self.record_custom_attrs[k] = v
+
         if isinstance(fmt, str):
-            return json.loads(fmt, object_pairs_hook=dictionary)
-        elif isinstance(fmt, dictionary):
-            return fmt
-        elif isinstance(fmt, dict):
-            warnings.warn(
-                "Current python version is lower than 3.7.0, the key's order of dict may be different with definition, please use `OrderedDict` replace.", UserWarning)
-            return dictionary((k, fmt[k]) for k in sorted(fmt.keys()))
+            return json.loads(fmt, object_pairs_hook=DICTIONARY)
         else:
-            raise TypeError(
-                '`%s` type `%s` is not supported, `fmt` must be `json`, `OrderedDcit` or `dict` type.' % (fmt, type(fmt)))
+            if isinstance(fmt, dict):
+                if not isinstance(fmt, DICTIONARY):
+                    warnings.warn(
+                        "Current python version is lower than 3.7.0, the key's order of dict may be different with definition, please use `OrderedDict` replace.", UserWarning)
+                    fmt = DICTIONARY((k, fmt[k]) for k in sorted(fmt.keys()))
+
+                _set_callable_value_to_record_custom_attrs()
+                return fmt
+            else:
+                raise TypeError(
+                    '`%s` type `%s` is not supported, `fmt` must be `json`, `OrderedDcit` or `dict` type.' % (fmt, type(fmt)))
 
     def checkRecordCustomAttrs(self, record_custom_attrs):
         def _patch_no_params_func_accept_kwargs(func):
@@ -291,16 +303,17 @@ class JsonFormatter(logging.Formatter):
                 self, fmt='', datefmt=datefmt, style=style)
         # compatible python2 end
 
+        self.record_custom_attrs = {}
         # compatible dictConfig pass format keyword argument start
         self.json_fmt = self.parseFmt(kw.pop('format', fmt))
         # compatible dictConfig pass format keyword argument end
-        self.record_custom_attrs = record_custom_attrs
+        self.record_custom_attrs.update(record_custom_attrs or {})
+        self.checkRecordCustomAttrs(self.record_custom_attrs)
         self._style = _STYLES[style](self.json_fmt)
         self._style._fmt = ''
         self.mix_extra = mix_extra
         self.mix_extra_position = mix_extra_position
 
-        self.checkRecordCustomAttrs(self.record_custom_attrs)
 
         # support `json.dumps` parameters start
         self.skipkeys = skipkeys
@@ -354,7 +367,7 @@ class JsonFormatter(logging.Formatter):
         if PYTHON_VERSION >= (3, 7):
             return extras
         else:
-            return dictionary((k, extras[k]) for k in sorted(extras.keys()))
+            return DICTIONARY((k, extras[k]) for k in sorted(extras.keys()))
 
     def setRecordCustomAttrs(self, record):
         for k, v in self.record_custom_attrs.items():
@@ -381,7 +394,7 @@ class JsonFormatter(logging.Formatter):
                 self._style._fmt = v
                 result[k] = self.formatMessage(record)
 
-        result = dictionary()
+        result = DICTIONARY()
 
         self.setRecordMessage(record)
 
@@ -390,7 +403,7 @@ class JsonFormatter(logging.Formatter):
         # pop stored __extra start
         extra = record.__dict__.pop('__extra', None) or record.__dict__.pop('_JsonFormatter__extra', None)
         if extra is None:
-            extra = self.getRecordExtraAttrs(record)  # extra is dictionary
+            extra = self.getRecordExtraAttrs(record)  # extra is DICTIONARY
         # pop stored __extra end
 
         if self.record_custom_attrs:
@@ -418,7 +431,7 @@ class JsonFormatter(logging.Formatter):
                 _set_extra_to_result()
             if self.mix_extra_position == 'mix':
                 _set_extra_to_result()
-                result = dictionary(
+                result = DICTIONARY(
                     (k, result[k])
                     for k in sorted(result.keys())
                 )

@@ -15,3 +15,4 @@ __all__ = ['JsonFormatter', 'basicConfig', 'fileConfig']
 
 version_info = (0, 4, 0)
 version = '.'.join(str(i) for i in version_info)
+__author__ = 'my_colorful_days@163.com'
