@@ -778,10 +778,10 @@ formatter = JsonFormatter(
         ("message", "message"),
     ]),
     record_custom_attrs={
-        'trace_id': lambda: (REQUEST_CONTEXT.get()).get('trace_id', None),
-        'url': lambda: (REQUEST_CONTEXT.get()).get('url', None),
-        'method': lambda: (REQUEST_CONTEXT.get()).get('method', None),
-        'uid': lambda: (REQUEST_CONTEXT.get()).get('uid', None),
+        'trace_id': lambda: (REQUEST_CONTEXT.get({})).get('trace_id', None),
+        'url': lambda: (REQUEST_CONTEXT.get({})).get('url', None),
+        'method': lambda: (REQUEST_CONTEXT.get({})).get('method', None),
+        'uid': lambda: (REQUEST_CONTEXT.get({})).get('uid', None),
     },
     mix_extra=True
 )
@@ -792,14 +792,7 @@ root = logging.getLogger()
 root.setLevel(logging.INFO)
 root.addHandler(sh)
 
-REQUEST_CONTEXT = contextvars.ContextVar(
-    'request_context',
-    default={
-        'url': None,
-        'uid': None,
-        'trace_id': None
-    }
-)
+REQUEST_CONTEXT = contextvars.ContextVar('request_context')
 
 
 class Application(tornado.web.Application):
@@ -819,11 +812,12 @@ class BaseHandler(tornado.web.RequestHandler):
         self.response = None
 
     async def prepare(self):
-        context = self.request_context.get()
+        context = {}
         context['url'] = self.request.path
         context['method'] = self.request.method
         context['uid'] = self.current_user
         context['trace_id'] = str(uuid.uuid4())
+        self.request_context.set(context)
 
     async def run_in_executor(self, function, *args, **kwargs):
         f = functools.partial(function, *args, **kwargs)
