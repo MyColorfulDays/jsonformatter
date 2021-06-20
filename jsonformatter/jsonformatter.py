@@ -338,11 +338,7 @@ class JsonFormatter(logging.Formatter):
         # support `json.dumps` parameters end
 
     def setRecordMessage(self, record):
-        if isinstance(record.msg, (int, long, float, bool, type(None))):
-            # keep these types without quote when output
-            record.message = record.msg
-        else:
-            record.message = str(record.msg)
+        record.message = record.msg
 
         if record.args:
             record.message = str(record.message) % record.args
