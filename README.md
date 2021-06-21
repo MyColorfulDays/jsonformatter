@@ -288,25 +288,26 @@ from jsonformatter import fileConfig
 
 # because of `logging.config.fileConfig` only support formatter three keyword arguments `class`, `datefmt`, `format` in config file, you should use `jsonformatter.fileConfig` and pass the optiontal keyword argument `defaults`.
 fileConfig(
-	os.path.join(os.path.dirname(__file__), 'logger_config.ini'),
-	defaults={
+    os.path.join(os.path.dirname(__file__), 'logger_config.ini'),
+    defaults={
         # all `JsonFormatter` instances will use these default keyword arguments, 'formatter_file_formatter' duplicate keyword arguments will overwrite these.
         'jsonformatter': {
-			'datefmt':'%Y-%m-%d %H-%M-%S.%f',
-			'record_custom_attrs': {
-				'app': lambda: 'jsonformatter',
-				'status': lambda **record_attrs: 'failed' if record_attrs['levelname'] in ['ERROR', 'CRITICAL'] else 'failed'
-			},
-			'indent': 4
-		},
-		# `formatter_file_formatter`
-		'formatter_file_formatter': {
-			'record_custom_attrs': {
-			'indent': None  #  duplicate keyword arguments, overwrite.
-		},
-	})
+            'datefmt':'%Y-%m-%d %H-%M-%S.%f',
+            'record_custom_attrs': {
+                'app': lambda: 'jsonformatter',
+                'status': lambda **record_attrs: 'failed' if record_attrs['levelname'] in ['ERROR', 'CRITICAL'] else 'failed'
+            },
+            'indent': 4
+        },
+        # `formatter_file_formatter`
+        'formatter_file_formatter': {
+            'record_custom_attrs': {
+            'indent': None  #  duplicate keyword arguments, overwrite.
+            },
+        }
+    })
 root = logging.getLogger()
-root.info("hello, %s", 'jsonformatter')
+root.info("Hello, %s", 'jsonformatter')
 
 ```
 
