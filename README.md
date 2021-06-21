@@ -75,14 +75,14 @@ from jsonformatter import basicConfig
 # default keyword parameter `format`: """{"levelname": "levelname", "name": "name", "message": "message"}"""
 basicConfig(level=logging.INFO)
 # `logging.info` is a shortcut to use root logger
-logging.info('hello, jsonformatter')
+logging.info('Hello, jsonformatter')
 
 ```
 
 output:
 
 ```shell
-{"levelname": "INFO", "name": "root", "message": "hello, jsonformatter"}
+{"levelname": "INFO", "name": "root", "message": "Hello, jsonformatter"}
 ```
 
 
@@ -127,14 +127,14 @@ root = logging.getLogger()
 root.setLevel(logging.INFO)
 root.addHandler(sh)
 
-root.info("hello, %s", 'jsonformatter')
+root.info("Hello, %s", 'jsonformatter')
 
 ```
 
 output:
 
 ```shell
-{"Name": "root", "Levelno": 20, "Levelname": "INFO", "Pathname": "test_code_config.py", "Filename": "test_code_config.py", "Module": "test_code_config", "Lineno": 36, "FuncName": "<module>", "Created": 1607753179.1741621, "Asctime": "2020-12-12 14:06:19,174", "Msecs": 174.1621494293213, "RelativeCreated": 38.06352615356445, "Thread": 16312, "ThreadName": "MainThread", "Process": 15464, "Message": "hello, jsonformatter"}
+{"Name": "root", "Levelno": 20, "Levelname": "INFO", "Pathname": "D:\\workspace\\jsonformatter\\test\\test_code_config.py", "Filename": "test_code_config.py", "Module": "test_code_config", "Lineno": 36, "FuncName": "<module>", "Created": 1624245157.6402893, "Asctime": "2021-06-21 11:12:37,640", "Msecs": 640.289306640625, "RelativeCreated": 24.043798446655273, "Thread": 25276, "ThreadName": "MainThread", "Process": 10116, "Message": "Hello, jsonformatter"}
 ```
 
 
@@ -174,6 +174,12 @@ root.addHandler(sh)
 root.info("Hello, custom %s", 'jsonformatter')
 
 ```
+output:
+
+```shell
+{"app": "app", "version": 1.0, "asctime": "2021-06-21 11:16:21.969", "status": "success", "message": "Hello, custom jsonformatter"}
+```
+
 
 2. Not recommended, compatible with version lower than 0.4.X, 
 
@@ -223,11 +229,11 @@ root.addHandler(sh)
 root.info("Hello, custom %s", 'jsonformatter')
 
 ```
+output:
 
 ```shell
-{"App": "app", "Asctime": "2020-12-12 14:09:56.237", "Status": "success", "Message": "hello, custom jsonformatter"}
+{"app": "app", "version": 1.0, "asctime": "2021-06-21 11:18:44.369", "status": "success", "message": "Hello, custom jsonformatter"}
 ```
-
 
 
 ### Case 4. Using `logging.config.fileConfig` or  `jsonformatter.fileConfig`
@@ -274,7 +280,7 @@ class=jsonformatter.JsonFormatter
 format={"app": "app","name": "name","levelno": "levelno","levelname": "levelname","pathname": "pathname","filename": "filename","module": "module","lineno": "lineno","funcName": "funcName","created": "created","asctime": "asctime","msecs": "msecs","relativeCreated": "relativeCreated","thread": "thread","threadName": "threadName","process": "process","message": "message","status": "status"}
 ```
 test_file_config.py
-```python3
+```python
 import logging
 import os
 
@@ -372,7 +378,7 @@ logging.info("hello, %s", 'jsonformatter')
 output:
 
 ```shell
-{"Name": "root", "Levelno": 20, "Levelname": "INFO", "Pathname": "test_dict_config.py", "Filename": "test_dict_config.py", "Module": "test_dict_config", "Lineno": 73, "FuncName": "<module>", "Created": 1607754142.6466718, "Asctime": "2020-12-12 14:22:22,646", "Msecs": 646.6717720031738, "RelativeCreated": 40.04716873168945, "Thread": 10716, "ThreadName": "MainThread", "Process": 8060, "Message": "hello, jsonformatter", "status": "success"}
+{"Name": "root", "Levelno": 20, "Levelname": "INFO", "Pathname": "D:\\workspace\\jsonformatter\\test\\test_dict_config.py", "Filename": "test_dict_config.py", "Module": "test_dict_config", "Lineno": 49, "FuncName": "<module>", "Created": 1624245827.7410626, "Asctime": "2021-06-21 11:23:47,741", "Msecs": 741.0626411437988, "RelativeCreated": 66.99776649475098, "Thread": 21164, "ThreadName": "MainThread", "Process": 9292, "Message": "hello, jsonformatter", "status": "success"}
 ```
 
 
@@ -453,12 +459,14 @@ root.info('test multi attributes in one key')
 output:
 
 ```shell
-{"multi attributes in one key": "root - 20 - INFO - test_multi_attrs_in_one.py - test_multi_attrs_in_one.py - test_multi_attrs_in_one - 18 - <module> - 1607755317.007021 - 2020-12-12 14:41:57,007 - 7 - 38 - 12160 - MainThread - 15956 - test multi attributes in one key"}
+{"multi attributes in one key": "root - 20 - INFO - D:\\workspace\\jsonformatter\\test\\test_multi_attrs_in_one.py - test_multi_attrs_in_one.py - test_multi_attrs_in_one - 17 - <module> - 1624246011.956316 - 2021-06-21 11:26:51,956 - 956 - 59 - 24304 - MainThread - 25336 - test multi attributes in one key"}
 ```
 
 
 
 ### Case 3. Support `json.dumps` all optional arguments
+
+test_json_dumps.py
 
 ```python
 import logging
@@ -496,23 +504,25 @@ root.info('test json optional paramter: 中文')
 
 ```
 
+output:
+
 ```shell
 {
     "Name": "root",
     "Levelno": 20,
     "Levelname": "INFO",
-    "Pathname": "test_json_opt_args.py",
-    "Filename": "test_json_opt_args.py",
-    "Module": "test_json_opt_args",
+    "Pathname": "D:\\workspace\\jsonformatter\\test\\test_json_dumps.py",
+    "Filename": "test_json_dumps.py",
+    "Module": "test_json_dumps",
     "Lineno": 32,
     "FuncName": "<module>",
-    "Created": 1607755409.3337555,
-    "Asctime": "2020-12-12 14:43:29,333",
-    "Msecs": 333.7554931640625,
-    "RelativeCreated": 39.05749320983887,
-    "Thread": 13140,
+    "Created": 1624246060.9368758,
+    "Asctime": "2021-06-21 11:27:40,936",
+    "Msecs": 936.8758201599121,
+    "RelativeCreated": 56.99920654296875,
+    "Thread": 12268,
     "ThreadName": "MainThread",
-    "Process": 12480,
+    "Process": 13708,
     "Message": "test json optional paramter: 中文"
 }
 ```
