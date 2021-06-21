@@ -29,10 +29,11 @@ else:
     from collections import OrderedDict
     DICTIONARY = OrderedDict
 
-# compatible python2, python 3 no long type, start
+# compatible python2, python 3 no long type, unicode type, start
 if PYTHON_VERSION >= (3, 0):
     long = int
-# compatible python2, python 3 no long type, end
+    unicode = str
+# compatible python2, python 3 no long type, unicode type, end
 
 
 class PercentStyle(object):
@@ -85,11 +86,13 @@ BASIC_FORMAT = DICTIONARY([
     ('message', 'message')
 ])
 
+
 _STYLES = {
     '%': PercentStyle,
     '{': StrFormatStyle,
     '$': StringTemplateStyle,
 }
+
 
 _LogRecordDefaultAttributes = {
     'name',
@@ -116,6 +119,7 @@ _LogRecordDefaultAttributes = {
     'asctime'
 }
 
+
 _MIX_EXTRA_ORDER = {
     'head',
     'tail',
@@ -123,9 +127,23 @@ _MIX_EXTRA_ORDER = {
 }
 
 
+_JSON_SERIALIZABLE_TYPES = (
+    dict,
+    list,
+    tuple,
+    str,
+    unicode,
+    int,
+    long,
+    float,
+    bool,
+    type(None)
+)
+
+
 class JsonFormatterDefaultJSONEncoder(json.JSONEncoder):
     def default(self, o):
-        if isinstance(o, (dict, list, tuple, str, int, long, float, bool, type(None))):
+        if isinstance(o, _JSON_SERIALIZABLE_TYPES):
             return json.JSONEncoder.default(self, o)
         else:
             return str(o)
@@ -391,7 +409,7 @@ class JsonFormatter(logging.Formatter):
                 result[k] = getattr(record, v, None)
             # this is for convert to string
             else:
-                if isinstance(v, str):
+                if isinstance(v, (str, unicode)):
                     # TODO: if formatter contains a custom attribute and
                     # `record_custom_attrs` not pass the custom attribute
                     # implement, the value is original string.
