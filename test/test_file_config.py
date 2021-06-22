@@ -9,10 +9,10 @@ fileConfig(
     defaults={
         # all `JsonFormatter` instances will use these default keyword arguments, 'formatter_file_formatter' duplicate keyword arguments will overwrite these.
         'jsonformatter_all_instances': {
-            'datefmt':'%Y-%m-%d %H-%M-%S.%f',
+            'datefmt':'%Y-%m-%d %H-%M-%S',
             'record_custom_attrs': {
                 'app': lambda: 'jsonformatter',
-                'status': lambda **record_attrs: 'failed' if record_attrs['levelname'] in ['ERROR', 'CRITICAL'] else 'failed'
+                'status': lambda **record_attrs: 'failed' if record_attrs['levelname'] in ['ERROR', 'CRITICAL'] else 'success'
             },
             'indent': 4
         },

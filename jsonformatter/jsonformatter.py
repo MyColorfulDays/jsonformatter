@@ -612,8 +612,8 @@ def fileConfig(fname, defaults=None, disable_existing_loggers=True):
                 sectname = "formatter_%s" % formatter_name
                 opts = cp.options(sectname)
                 formatter_kwargs = {}
-                formatter_kwargs.update(**cp.defaults().get('jsonformatter_all_instances', {}))
-                formatter_kwargs.update(**cp.defaults().get(sectname, {}))
+                formatter_kwargs.update(defaults.get('jsonformatter_all_instances', {}))
+                formatter_kwargs.update(defaults.get(sectname, {}))
                 # compatible python2 start
                 formatter_kwargs['fmt'] = cp.get(sectname, 'format', raw=True) if 'format' in opts else formatter_kwargs.get('fmt', BASIC_FORMAT)
                 formatter_kwargs['datefmt'] = cp.get(sectname, 'datefmt', raw=True) if 'datefmt' in opts else formatter_kwargs.get('datefmt', None)
