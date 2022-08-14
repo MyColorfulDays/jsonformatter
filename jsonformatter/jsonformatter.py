@@ -321,7 +321,7 @@ class JsonFormatter(logging.Formatter):
             record.message = str(record.msg)
 
         if record.args:
-            record.message = str(record.message) % record.args
+            record.message = record.getMessage()
 
         if record.exc_info:
             # Cache the traceback text to avoid converting it multiple times
