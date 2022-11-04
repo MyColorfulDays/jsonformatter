@@ -188,7 +188,7 @@ class JsonFormatter(logging.Formatter):
 
                     if inspect.isfunction(func):
                         argspec = getattr(inspect, 'getfullargspec',
-                                          inspect.getargspec)(func)
+                                          inspect.signature)(func)
                         if argspec.args:
                             raise TypeError(
                                 "`%s` must no Positional Parameters." % func.__name__
