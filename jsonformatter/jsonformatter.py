@@ -187,8 +187,7 @@ class JsonFormatter(logging.Formatter):
                         raise TypeError('`%s` is not callable.' % func)
 
                     if inspect.isfunction(func):
-                        argspec = getattr(inspect, 'getfullargspec',
-                                          inspect.getargspec)(func)
+                        argspec = (getattr(inspect, 'getfullargspec', None) or inspect.getargspec)(func)
                         if argspec.args:
                             raise TypeError(
                                 "`%s` must no Positional Parameters." % func.__name__

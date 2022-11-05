@@ -11,6 +11,8 @@ Description: setup.py
 import sys
 from setuptools import setup
 
+from jsonformatter import version
+
 long_description = ''
 
 try:
@@ -25,7 +27,7 @@ except Exception as e:
 
 setup(
     name='jsonformatter',
-    version='0.3.1',
+    version=version,
     description=(
         'Python log in json format.'
     ),
