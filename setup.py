@@ -49,5 +49,6 @@ setup(
     author_email='my_colorful_days@163.com',
     url='https://github.com/MyColorfulDays/jsonformatter.git',
     license='BSD License',
-    packages=['jsonformatter']
+    packages=['jsonformatter'],
+    options={'bdist_wheel': {'universal': True}},
 )
