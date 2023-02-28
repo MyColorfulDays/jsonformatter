@@ -162,7 +162,7 @@ class JsonFormatter(logging.Formatter):
 
     def parseFmt(self, fmt):
         if isinstance(fmt, str):
-            return json.loads(fmt, object_pairs_hook=dictionary)
+            return self.loads(fmt, object_pairs_hook=dictionary)
         elif isinstance(fmt, dictionary):
             return fmt
         elif isinstance(fmt, dict):
@@ -215,7 +215,28 @@ class JsonFormatter(logging.Formatter):
         else:
             return
 
-    def __init__(self, fmt=BASIC_FORMAT, datefmt=None, style='%', record_custom_attrs=None, mix_extra=False, mix_extra_position='tail', skipkeys=False, ensure_ascii=True, check_circular=True, allow_nan=True, cls=None, indent=None, separators=None, encoding='utf-8', default=None, sort_keys=False, **kw):
+    def __init__(
+        self,
+        fmt=BASIC_FORMAT,
+        datefmt=None,
+        style='%',
+        record_custom_attrs=None,
+        mix_extra=False,
+        mix_extra_position='tail',
+        skipkeys=False,
+        ensure_ascii=True,
+        check_circular=True,
+        allow_nan=True,
+        cls=None,
+        indent=None,
+        separators=None,
+        encoding='utf-8',
+        default=None,
+        sort_keys=False,
+        dumps=json.dumps,
+        loads=json.loads,
+        **kw,
+    ):
         """
         If ``style`` not in ``['%', '{', '$']``, a ``ValueError`` will be raised.
 
@@ -268,6 +289,9 @@ class JsonFormatter(logging.Formatter):
         If *sort_keys* is true (default: ``False``), then the output of
         dictionaries will be sorted by key.
 
+        ``dumps`` custom function to use instead of json.dumps
+        ``loads`` custom function to use instead of json.loads
+
         To use a custom ``JSONEncoder`` subclass (e.g. one that overrides the
         ``.default()`` method to serialize additional types), specify it with
         the ``cls`` kwarg; otherwise ``JSONEncoder`` is used.
@@ -289,6 +313,8 @@ class JsonFormatter(logging.Formatter):
                 self, fmt='', datefmt=datefmt, style=style)
         # compatible python2 end
 
+        self.dumps = dumps
+        self.loads = loads
         self.json_fmt = self.parseFmt(fmt)
         self.record_custom_attrs = record_custom_attrs
         self._style = _STYLES[style](self.json_fmt)
@@ -423,7 +449,7 @@ class JsonFormatter(logging.Formatter):
         record.__extra = extra
         # store __extra end
 
-        return json.dumps(
+        return self.dumps(
             result,
             skipkeys=self.skipkeys,
             ensure_ascii=self.ensure_ascii,

@@ -9,6 +9,7 @@ Github: https://github.com/yourname
 Description: jsonformatter.py
 """
 import datetime
+import json
 import logging
 import os
 import random
@@ -496,6 +497,60 @@ class JsonFormatterTest(unittest.TestCase):
             }"""
         )
         logging.info('basic config format')
+
+    def test_custom_json_lib_dict_config(self):
+        def my_dumps(*args, **kwargs):
+            return json.dumps(*args, **kwargs)
+
+        def my_loads(*args, **kwargs):
+            return json.loads(*args, **kwargs)
+
+        log_format = """{
+        "levelname": "levelname",
+        "name": "name",
+        "log": "message"
+        }"""
+        log_level = "DEBUG"
+
+        formatters = {
+            "default": {
+                "()": "jsonformatter.JsonFormatter",
+                "fmt": log_format,
+                "indent": None,
+                "ensure_ascii": False,
+                "dumps": my_dumps,
+                "loads": my_loads,
+            },
+        }
+
+        handlers = {
+            "default": {
+                "level": log_level,
+                "class": "logging.StreamHandler",
+                "stream": "ext://sys.stdout",
+                "formatter": "default",
+            }
+
+        }
+        loggers = {
+            "": {
+                "handlers": ["default"],
+                "level": log_level,
+                "propagate": False,
+            },
+        }
+
+        config = {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "formatters": formatters,
+            "handlers": handlers,
+            "loggers": loggers,
+        }
+
+        logging.config.dictConfig(config)
+        logger = logging.getLogger("test-logger")
+        logger.debug("check if works (it does)")
 
     def tearDown(self):
         root = logging.getLogger()
