@@ -27,6 +27,28 @@ Easily **custom(add/replace)** `LogRecord` attribute, e.g. in `Flask` web projec
 
 
 
+## Contributing
+
+Download source code
+```shell
+$ git clone https://github.com/MyColorfulDays/jsonformatter.git
+$ cd jsonformatter
+$ pip install -e .
+```
+
+Run tests
+```shell
+$ python -m unittest tests/test.py
+$ python -m unittest tests/test_windows.py
+```
+
+Build
+```shell
+$ pip install build
+$ python -m build
+```
+
+
 ## Installation
 
 jsonformatter is available on PyPI.
@@ -35,14 +57,6 @@ Use pip to install:
 ```shell
 $ pip install jsonformatter
 ```
-or:
-
-```shell
-$ git clone https://github.com/MyColorfulDays/jsonformatter.git
-$ cd jsonformatter
-$ python setup.py install
-```
-
 
 
 ## Basic Usage
