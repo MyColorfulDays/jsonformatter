@@ -1,0 +1,29 @@
+[build-system]
+requires = ["pdm-pep517>=1.1.2"]
+build-backend = "pdm.pep517.api"
+
+[project]
+name = "jsonformatter"
+version = "0.3.3"
+description = 'Python log in json format.'
+readme = "README.md"
+license = "BSD License"
+license-files.paths = [
+    "LICENSE",
+]
+classifiers = [
+    'Development Status :: 2 - Pre-Alpha',
+    'Intended Audience :: Developers',
+    'License :: OSI Approved :: BSD License',
+    'Operating System :: OS Independent',
+    'Programming Language :: Python :: 2.7',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Topic :: Utilities',
+]
+authors = [
+    { name = "MyColorfulDays", email = "my_colorful_days@163.com" },
+]
+urls = { Homepage = "https://github.com/MyColorfulDays/jsonformatter.git" }
+requires-python = ">=2.7"
+dependencies = []
