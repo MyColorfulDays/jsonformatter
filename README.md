@@ -1,17 +1,18 @@
 - [jsonformatter -- for python log json](#jsonformatter----for-python-log-json)
-    - [Installation](#installation)
-    - [Basic Usage](#basic-usage)
-        - [Case 1. Initial root logger like `logging.basicConfig`](#case-1-initial-root-logger-like-loggingbasicconfig)
-        - [Case 2. Complete config in python code](#case-2-complete-config-in-python-code)
-        - [Case 3. Use config file](#case-3-use-config-file)
-        - [Case 4. In `Flask` project, add `LogRecord` attribute for auto output](#case-4-in-flask-project-add-logrecord-attribute-for-auto-output)
-        - [Case 5. In `Django` project, config `LOGGING`](#case-5-in-django-project-config-logging)
-    - [More Usage](#more-usage)
-        - [Case 1. Mix `extra` to output](#case-1-mix-extra-to-output)
-        - [Case 2. Output multiple attributes in one key](#case-2-output-multiple-attributes-in-one-key)
-        - [Case 3. Support `json.dumps` all optional parameters](#case-3-support-jsondumps-all-optional-parameters)
-        - [Case 4. Solve cumtom `LogRecord` attribute is not `JSON serializable`](#case-4-solve-cumtom-logrecord-attribute-is-not-json-serializable)
-    - [LogRecord Attributes](#logrecord-attributes)
+  - [Installation](#installation)
+  - [Contributing](#contributing)
+  - [Basic Usage](#basic-usage)
+    - [Case 1. Initial root logger like `logging.basicConfig`](#case-1-initial-root-logger-like-loggingbasicconfig)
+    - [Case 2. Complete config in python code](#case-2-complete-config-in-python-code)
+    - [Case 3. Use config file](#case-3-use-config-file)
+    - [Case 4. In `Flask` project, add `LogRecord` attribute for auto output](#case-4-in-flask-project-add-logrecord-attribute-for-auto-output)
+    - [Case 5. In `Django` project, config `LOGGING`](#case-5-in-django-project-config-logging)
+  - [More Usage](#more-usage)
+    - [Case 1. Mix `extra` to output](#case-1-mix-extra-to-output)
+    - [Case 2. Output multiple attributes in one key](#case-2-output-multiple-attributes-in-one-key)
+    - [Case 3. Support `json.dumps` all optional parameters](#case-3-support-jsondumps-all-optional-parameters)
+    - [Case 4. Solve cumtom `LogRecord` attribute is not `JSON serializable`](#case-4-solve-cumtom-logrecord-attribute-is-not-json-serializable)
+  - [LogRecord Attributes](#logrecord-attributes)
 
 
 
@@ -25,6 +26,29 @@ Easily **custom(add/replace)** `LogRecord` attribute, e.g. in `Flask` web projec
 
 **Python 2.7** and **python 3** are supported from version 0.2.X,  if you are using a version lower than 0.2.X,  Only **python 3** is supported.
 
+
+## Installation
+
+jsonformatter is available on PyPI.
+Use pip to install:
+
+```shell
+$ pip install jsonformatter
+```
+or:
+
+```shell
+$ git clone https://github.com/MyColorfulDays/jsonformatter.git
+$ cd jsonformatter
+$ python setup.py install
+```
+or python >= 3.7:
+
+```shell
+$ git clone https://github.com/MyColorfulDays/jsonformatter.git
+$ cd jsonformatter
+$ pip install .
+```
 
 
 ## Contributing
@@ -46,16 +70,6 @@ Build
 ```shell
 $ pip install build
 $ python -m build
-```
-
-
-## Installation
-
-jsonformatter is available on PyPI.
-Use pip to install:
-
-```shell
-$ pip install jsonformatter
 ```
 
 

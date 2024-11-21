@@ -438,12 +438,30 @@ class JsonFormatter(logging.Formatter):
         )
 
 
+def _acquireLock():
+    """
+    Acquire the module-level lock for serializing access to shared data.
+
+    This should be released with _releaseLock().
+    """
+    if logging._lock:
+        logging._lock.acquire()
+
+def _releaseLock():
+    """
+    Release the module-level lock acquired by calling _acquireLock().
+    """
+    if logging._lock:
+        logging._lock.release()
+
+
 def basicConfig(**kwargs):
     """
     Do basic configuration for the logging system.
 
     This function does nothing if the root logger already has handlers
-    configured. It is a convenience method intended for use by simple scripts
+    configured, unless the keyword argument *force* is set to ``True``.
+    It is a convenience method intended for use by simple scripts
     to do one-shot configuration of the logging package.
 
     The default behaviour is to create a StreamHandler which writes to
@@ -468,9 +486,20 @@ def basicConfig(**kwargs):
               that this argument is incompatible with 'filename' - if both
               are present, 'stream' is ignored.
     handlers  If specified, this should be an iterable of already created
-              handlers, which will be added to the root handler. Any handler
+              handlers, which will be added to the root logger. Any handler
               in the list which does not have a formatter assigned will be
               assigned the formatter created in this function.
+    force     If this keyword  is specified as true, any existing handlers
+              attached to the root logger are removed and closed, before
+              carrying out the configuration as specified by the other
+              arguments.
+    encoding  If specified together with a filename, this encoding is passed to
+              the created FileHandler, causing it to be used when the file is
+              opened.
+    errors    If specified together with a filename, this value is passed to the
+              created FileHandler, causing it to be used when the file is
+              opened in text mode. If not specified, the default value is
+              `backslashreplace`.
 
     Note that you could specify a stream created using open(filename, mode)
     rather than passing the filename and mode in. However, it should be
@@ -487,11 +516,24 @@ def basicConfig(**kwargs):
        ``filename``/``filemode``, or ``filename``/``filemode`` specified
        together with ``stream``, or ``handlers`` specified together with
        ``stream``.
+
+    .. versionchanged:: 3.8
+       Added the ``force`` parameter.
+
+    .. versionchanged:: 3.9
+       Added the ``encoding`` and ``errors`` parameters.
     """
     # Add thread safety in case someone mistakenly calls
     # basicConfig() from multiple threads
-    logging._acquireLock()
+    _acquireLock()
     try:
+        force = kwargs.pop('force', False)
+        encoding = kwargs.pop('encoding', None)
+        errors = kwargs.pop('errors', 'backslashreplace')
+        if force:
+            for h in logging.root.handlers[:]:
+                logging.root.removeHandler(h)
+                h.close()
         if len(logging.root.handlers) == 0:
             handlers = kwargs.pop("handlers", None)
             if handlers is None:
@@ -506,7 +548,14 @@ def basicConfig(**kwargs):
                 filename = kwargs.pop("filename", None)
                 mode = kwargs.pop("filemode", 'a')
                 if filename:
-                    h = logging.FileHandler(filename, mode)
+                    if 'b'in mode:
+                        errors = None
+                    if sys.version_info >= (3, 9):
+                        h = logging.FileHandler(filename, mode,
+                                        encoding=encoding, errors=errors)
+                    else: 
+                        h = logging.FileHandler(filename, mode,
+                                        encoding=encoding)
                 else:
                     stream = kwargs.pop("stream", None)
                     h = logging.StreamHandler(stream)
@@ -529,4 +578,4 @@ def basicConfig(**kwargs):
                 keys = ', '.join(kwargs.keys())
                 raise ValueError('Unrecognised argument(s): %s' % keys)
     finally:
-        logging._releaseLock()
+        _releaseLock()

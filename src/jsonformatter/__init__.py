@@ -11,3 +11,6 @@ Description: jsonformatter.py
 from .jsonformatter import JsonFormatter, basicConfig
 
 __all__ = ['JsonFormatter', 'basicConfig']
+
+version_info = (0, 3, 3)
+version = '.'.join(str(v) for v in version_info)
