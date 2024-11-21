@@ -16,11 +16,6 @@ import unittest
 from collections import OrderedDict
 from logging.config import fileConfig
 
-
-if __file__ == 'test_windows.py':
-    import sys
-    sys.path.insert(0, '..')
-
 from jsonformatter import JsonFormatter, basicConfig
 
 
@@ -153,7 +148,7 @@ class JsonFormatterTest(unittest.TestCase):
         sh.setLevel(logging.INFO)
 
         root.addHandler(sh)
-        root.info('test percent style unicode: %s', 'ï¿½ï¿½ï¿½ï¿½')
+        root.info('test percent style unicode: %s', 'ÖÐÎÄ')
 
     def test_format_style_unicode(self):
         root = logging.getLogger()
@@ -167,7 +162,7 @@ class JsonFormatterTest(unittest.TestCase):
         sh.setLevel(logging.INFO)
 
         root.addHandler(sh)
-        root.info('test format style unicode: %s', 'ï¿½ï¿½ï¿½ï¿½')
+        root.info('test format style unicode: %s', 'ÖÐÎÄ')
 
     def test_template_style_unicode(self):
         root = logging.getLogger()
@@ -181,7 +176,7 @@ class JsonFormatterTest(unittest.TestCase):
         sh.setLevel(logging.INFO)
 
         root.addHandler(sh)
-        root.info('test template style unicode: %s', 'ï¿½ï¿½ï¿½ï¿½')
+        root.info('test template style unicode: %s', 'ÖÐÎÄ')
 
     def test_dict_format(self):
         DICT_FORMAT = {
@@ -348,7 +343,7 @@ class JsonFormatterTest(unittest.TestCase):
 
         root.addHandler(sh)
 
-        root.info('test json dumps parameter `ensure_ascii` False: ï¿½ï¿½ï¿½ï¿½')
+        root.info('test json dumps parameter `ensure_ascii` False: ÖÐÎÄ')
 
     def test_file_config(self):
         fileConfig(os.path.join(os.path.dirname(

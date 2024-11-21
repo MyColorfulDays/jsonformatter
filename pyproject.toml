@@ -7,10 +7,6 @@ name = "jsonformatter"
 version = "0.3.3"
 description = 'Python log in json format.'
 readme = "README.md"
-license = "BSD License"
-license-files.paths = [
-    "LICENSE",
-]
 classifiers = [
     'Development Status :: 2 - Pre-Alpha',
     'Intended Audience :: Developers',
@@ -27,3 +23,6 @@ authors = [
 urls = { Homepage = "https://github.com/MyColorfulDays/jsonformatter.git" }
 requires-python = ">=2.7"
 dependencies = []
+
+[project.license]
+file = "LICENSE"

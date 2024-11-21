@@ -16,11 +16,6 @@ import unittest
 from collections import OrderedDict
 from logging.config import fileConfig
 
-
-if __file__ == 'test.py':
-    import sys
-    sys.path.insert(0, '..')
-
 from jsonformatter import JsonFormatter, basicConfig
 
 
