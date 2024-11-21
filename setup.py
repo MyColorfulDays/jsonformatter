@@ -26,7 +26,7 @@ except Exception as e:
 
 setup(
     name='jsonformatter',
-    version='0.3.3',
+    version='0.3.4',
     packages=find_packages(where='src'),
     package_dir={'': 'src'},
     description=(
